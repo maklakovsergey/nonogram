@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QTableView>
+#include "nonogram.h"
 
 namespace Ui {
 class MainWindow;
@@ -22,7 +23,10 @@ private slots:
     void saveFile();
 
 private:
-    Ui::MainWindow *ui;
+    std::shared_ptr<Ui::MainWindow> ui;
+    std::shared_ptr<Nonogram> _nonogram;
+
+    void setNonogram(Nonogram* nonogram);
 };
 
 #endif // MAINWINDOW_H

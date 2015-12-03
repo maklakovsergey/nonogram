@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>703</width>
+    <height>547</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
@@ -17,8 +25,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>330</width>
-     <height>21</height>
+     <width>703</width>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -39,6 +47,9 @@
    </property>
   </action>
   <action name="action_save">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Сохранить</string>
    </property>
@@ -49,6 +60,9 @@
    </property>
   </action>
   <action name="action_new">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Создать</string>
    </property>
