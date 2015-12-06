@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui testlib
 CONFIG   += c++11
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -18,13 +18,15 @@ SOURCES += main.cpp\
     nonogrammodel.cpp \
     nonogramtabledelegate.cpp \
     nonogram.cpp \
-    numberlineedit.cpp
+    numberlineedit.cpp \
+    testnonogram.cpp
 
 HEADERS  += mainwindow.h \
     nonogrammodel.h \
     nonogramtabledelegate.h \
     nonogram.h \
-    numberlineedit.h
+    numberlineedit.h \
+    testnonogram.h
 
 FORMS    += mainwindow.ui \
     newfiledialog.ui

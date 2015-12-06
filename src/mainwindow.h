@@ -27,7 +27,7 @@ private slots:
 private:
     std::shared_ptr<Ui::MainWindow> ui;
     std::shared_ptr<Nonogram> _nonogram;
-    std::shared_ptr<NonogramModel> _nonogramModel;
+    NonogramModel _nonogramModel;
 
     void setNonogram(Nonogram* nonogram);
 };

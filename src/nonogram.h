@@ -14,6 +14,7 @@ class Nonogram : public QObject
 public:
     explicit Nonogram(QObject *parent = 0);
     Nonogram(int width, int height, QObject *parent = 0);
+    Nonogram(const Nonogram& nonogram);
     ~Nonogram();
 
     enum CellStatus:qint8{
@@ -24,6 +25,7 @@ public:
 
     void init(int width, int height);
     bool isValid() const;
+    bool isSolveable() const;
 
     inline int width() const {return _width; }
     inline int height() const {return _height; }

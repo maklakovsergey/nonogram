@@ -17,7 +17,7 @@ public:
     bool setData(const QModelIndex &index, const QVariant &value, int role);
 signals:
 
-public slots:
+private slots:
     void onItemChanged();
     void refreshRow(int row);
     void refreshColumn(int column);

@@ -1,4 +1,5 @@
 #include "nonogram.h"
+#include <QDebug>
 
 using namespace std;
 
@@ -10,8 +11,16 @@ Nonogram::Nonogram(QObject *parent) : QObject(parent){
     _rowInfo=NULL;
 }
 
-Nonogram::Nonogram(int width, int height, QObject *parent) : QObject(parent){
+Nonogram::Nonogram(int width, int height, QObject *parent) : Nonogram(parent){
     init(width, height);
+}
+
+Nonogram::Nonogram(const Nonogram& nonogram):Nonogram(nonogram.width(), nonogram.height()){
+    memcpy(_dataGrid.get(), nonogram.data(), _width*_height);
+    for(int i=0; i<_width; i++)
+        setColumnInfo(i, nonogram.columnInfo(i));
+    for(int i=0; i<_height; i++)
+        setRowInfo(i, nonogram.rowInfo(i));
 }
 
 Nonogram::~Nonogram(){
@@ -29,6 +38,31 @@ void Nonogram::init(int width, int height){
 bool Nonogram::isValid() const{
     return (_width && _height && _dataGrid && _columnInfo && _rowInfo);
 }
+
+bool Nonogram::isSolveable() const{
+    if (!isValid())
+        return false;
+    int columnSum=0;
+    for(int c=0; c<_width; c++){
+        int infoSum=0;
+        for(int value:columnInfo(c))
+            infoSum+=value;
+        if (infoSum+columnInfo(c).count()-1>_height)
+            return false;
+        columnSum+=infoSum;
+    }
+    int rowSum=0;
+    for(int r=0; r<_height; r++){
+        int infoSum=0;
+        for(int value:rowInfo(r))
+            infoSum+=value;
+        if (infoSum+rowInfo(r).count()-1>_width)
+            return false;
+        rowSum+=infoSum;
+    }
+    return columnSum==rowSum;
+}
+
 
 void Nonogram::setColumnInfo(int column, const InfoListType& newInfo) {
     InfoListType& info=_columnInfo.get()[column];
