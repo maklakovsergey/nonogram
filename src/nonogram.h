@@ -4,15 +4,17 @@
 #include <QObject>
 #include <QList>
 #include <QDataStream>
+#include <memory>
+
+typedef QList<quint16> InfoListType;
 
 class Nonogram : public QObject
 {
     Q_OBJECT
 public:
     explicit Nonogram(QObject *parent = 0);
+    Nonogram(int width, int height, QObject *parent = 0);
     ~Nonogram();
-    Nonogram(quint16 width, quint16 height);
-    Nonogram(QDataStream& dataStream) throw(std::runtime_error);
 
     enum CellStatus:qint8{
         Unknown,
@@ -20,24 +22,31 @@ public:
         Full
     };
 
-    inline quint16 width() const {return _width; }
-    inline quint16 height() const {return _height; };
-    inline CellStatus * data() const {return _dataGrid; };
-    inline QList<quint16> * columnInfo() const {return _columnInfo; };
-    inline QList<quint16> * rowInfo() const {return _rowInfo; };
+    void init(int width, int height);
+    bool isValid() const;
 
-    void save(QDataStream& dataStream);
+    inline int width() const {return _width; }
+    inline int height() const {return _height; }
+    inline CellStatus* data() const {return _dataGrid.get(); }
+    inline const InfoListType& columnInfo(int column) const {return _columnInfo.get()[column]; }
+    void setColumnInfo(int column, const InfoListType& newInfo);
+    inline InfoListType& rowInfo(int row) const {return _rowInfo.get()[row]; }
+    void setRowInfo(int row, const InfoListType& newInfo);
 
 signals:
-
+    void columnInfoChanged(int column);
+    void rowInfoChanged(int row);
 public slots:
 
 private:
-    quint16 _width;
-    quint16 _height;
-    CellStatus* _dataGrid;
-    QList<quint16>* _columnInfo;
-    QList<quint16>* _rowInfo;
+    int _width;
+    int _height;
+    std::shared_ptr<CellStatus> _dataGrid;
+    std::shared_ptr<InfoListType> _columnInfo;
+    std::shared_ptr<InfoListType> _rowInfo;
 };
+
+QDataStream& operator>>(QDataStream& in, Nonogram& nonogram);
+QDataStream& operator<<(QDataStream& out, const Nonogram& nonogram);
 
 #endif // NONOGRAM_H

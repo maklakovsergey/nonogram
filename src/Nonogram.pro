@@ -17,12 +17,17 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     nonogrammodel.cpp \
     nonogramtabledelegate.cpp \
-    nonogram.cpp
+    nonogram.cpp \
+    numberlineedit.cpp
 
 HEADERS  += mainwindow.h \
     nonogrammodel.h \
     nonogramtabledelegate.h \
-    nonogram.h
+    nonogram.h \
+    numberlineedit.h
 
 FORMS    += mainwindow.ui \
     newfiledialog.ui
+
+DISTFILES += \
+    translations.ts

@@ -14,28 +14,26 @@ public:
     explicit NonogramModel(QObject *parent = 0);
     ~NonogramModel();
     void setNonogram(Nonogram* nonogram);
-//    int columnCount(const QModelIndex &parent) const;
-//    int rowCount(const QModelIndex &parent) const;
-//    QVariant data(const QModelIndex &index, int role) const;
     bool setData(const QModelIndex &index, const QVariant &value, int role);
 signals:
 
 public slots:
     void onItemChanged();
+    void refreshRow(int row);
+    void refreshColumn(int column);
 
 private:
     bool _editing;
     Nonogram* _nonogram;
     int _maxColumnInfo;
     int _maxRowInfo;
-    std::shared_ptr<QStandardItem> infoItemPrototype;
-    std::shared_ptr<QStandardItem> addItemPrototype;
-    std::shared_ptr<QStandardItem> dataItemPrototype;
-    std::shared_ptr<QStandardItem> emptyItemPrototype;
 
     void refreshInfo();
-    void refreshRow(int row);
-    void refreshColumn(int column);
+
+    QStandardItem* itemAt(int row, int column);
+    QStandardItem* setupInfoItem(QStandardItem* item, const QString& value);
+    QStandardItem* setupDataItem(QStandardItem* item, Nonogram::CellStatus status);
+    QStandardItem* setupAddItem(QStandardItem *item);
 };
 
-#endif // NOMOGRAMMODEL_H
+#endif // NONOGRAMMODEL_H
