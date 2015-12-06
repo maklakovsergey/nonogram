@@ -15,9 +15,13 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
+    nonogrammodel.cpp \
+    nonogramtabledelegate.cpp \
     nonogram.cpp
 
 HEADERS  += mainwindow.h \
+    nonogrammodel.h \
+    nonogramtabledelegate.h \
     nonogram.h
 
 FORMS    += mainwindow.ui \
