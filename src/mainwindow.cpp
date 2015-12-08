@@ -15,8 +15,9 @@ using namespace std;
 Nonogram* createRandomNonogram(){
     const int width=15, height=20;
     Nonogram* n=new Nonogram(width, height);
-    for(int i=0; i<width*height; i++)
-        n->data()[i]=(Nonogram::CellStatus)(rand()%3);
+    for(int r=0; r<height; r++)
+        for(int c=0; c<width; c++)
+            n->setData(r, c, (Nonogram::CellStatus)(rand()%3));
     for(int i=0; i<width; i++){
         int itemsCount=rand()%4+1;
         InfoListType items;
@@ -41,7 +42,15 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->tableView->setModel(&_nonogramModel);
-    ui->tableView->setItemDelegate(new NonogramTableDelegate());
+    NonogramTableDelegate* delegate=new NonogramTableDelegate;
+    delegate->setCellSize(QSize(24, 24));
+    delegate->setBorderWidth(2);
+    delegate->setBorderColor(Qt::black);
+    delegate->setGroupSize(5);
+    ui->tableView->setItemDelegate(delegate);
+    ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->tableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->tableView->setStyleSheet("QTableView { gridline-color: black } ");
 
     setNonogram(createRandomNonogram());
     QShortcut* shortcut = new QShortcut(QKeySequence(QKeySequence::Delete), ui->tableView);

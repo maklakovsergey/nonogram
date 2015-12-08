@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QList>
+#include <QVector>
 #include <QDataStream>
 #include <memory>
 
@@ -29,13 +30,18 @@ public:
 
     inline int width() const {return _width; }
     inline int height() const {return _height; }
-    inline CellStatus* data() const {return _dataGrid.get(); }
-    inline const InfoListType& columnInfo(int column) const {return _columnInfo.get()[column]; }
+    inline CellStatus data(int row, int column) const       { return _dataGrid[row*_width+column]; }
+    inline const InfoListType& columnInfo(int column) const { return _columnInfo[column]; }
+    inline const InfoListType& rowInfo(int row) const       { return _rowInfo[row]; }
+
+    void setData(int row, int column, CellStatus value);
     void setColumnInfo(int column, const InfoListType& newInfo);
-    inline InfoListType& rowInfo(int row) const {return _rowInfo.get()[row]; }
     void setRowInfo(int row, const InfoListType& newInfo);
 
+    bool operator== (const Nonogram& n)const;
+    bool operator!= (const Nonogram& n)const {return !(*this == n);}
 signals:
+    void dataChanged(int row, int column);
     void columnInfoChanged(int column);
     void rowInfoChanged(int row);
 public slots:
@@ -43,12 +49,14 @@ public slots:
 private:
     int _width;
     int _height;
-    std::shared_ptr<CellStatus> _dataGrid;
-    std::shared_ptr<InfoListType> _columnInfo;
-    std::shared_ptr<InfoListType> _rowInfo;
+    QVector<CellStatus> _dataGrid;
+    QVector<InfoListType> _columnInfo;
+    QVector<InfoListType> _rowInfo;
+
+    friend QDataStream& operator>>(QDataStream& in, Nonogram& nonogram);
+    friend QDataStream& operator<<(QDataStream& out, const Nonogram& nonogram);
 };
 
-QDataStream& operator>>(QDataStream& in, Nonogram& nonogram);
-QDataStream& operator<<(QDataStream& out, const Nonogram& nonogram);
+
 
 #endif // NONOGRAM_H

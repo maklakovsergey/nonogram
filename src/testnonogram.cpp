@@ -114,9 +114,10 @@ void TestNonogram::builtinNonograms(){
 }
 
 void TestNonogram::fillRandomData(Nonogram* n){
-    int size=n->width()*n->height();
-    for(int i=0; i<size; i++)
-        n->data()[i]=(Nonogram::CellStatus)(rand()%3);
+    int width=n->width(), height=n->height();
+    for(int r=0; r<height; r++)
+        for(int c=0; c<width; c++)
+            n->setData(r, c, (Nonogram::CellStatus)(rand()%3));
 }
 
 void TestNonogram::saveLoad(){
@@ -124,25 +125,12 @@ void TestNonogram::saveLoad(){
     initCarNonogram(n);
     fillRandomData(&n);
 
-    int width=n.width();
-    int height=n.height();
-    QVERIFY(width>0);
-    QVERIFY(height>0);
-
     QByteArray storage(10240, 0);
     QDataStream writestream(&storage, QIODevice::WriteOnly);
     writestream << n;
     QDataStream readstream(&storage, QIODevice::ReadOnly);
     Nonogram m;
     readstream >> m;
-
-    QCOMPARE(m.width(), width);
-    QCOMPARE(m.height(), height);
-    for(int i=0; i<width*height; i++)
-        QCOMPARE(m.data()[i], n.data()[i]);
-    for(int i=0; i<width; i++)
-        QCOMPARE(n.columnInfo(i), m.columnInfo(i));
-    for(int i=0; i<height; i++)
-        QCOMPARE(n.rowInfo(i), m.rowInfo(i));
+    QCOMPARE(m, n);
 }
 

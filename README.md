@@ -1,2 +1,2 @@
 # nonogram
-App for solving nonograms
+App for solving nonograms (still in development)

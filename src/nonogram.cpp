@@ -1,14 +1,9 @@
 #include "nonogram.h"
 #include <QDebug>
 
-using namespace std;
-
 Nonogram::Nonogram(QObject *parent) : QObject(parent){
     _width=0;
     _height=0;
-    _dataGrid=NULL;
-    _columnInfo=NULL;
-    _rowInfo=NULL;
 }
 
 Nonogram::Nonogram(int width, int height, QObject *parent) : Nonogram(parent){
@@ -16,11 +11,11 @@ Nonogram::Nonogram(int width, int height, QObject *parent) : Nonogram(parent){
 }
 
 Nonogram::Nonogram(const Nonogram& nonogram):Nonogram(nonogram.width(), nonogram.height()){
-    memcpy(_dataGrid.get(), nonogram.data(), _width*_height);
+    _dataGrid.append(nonogram._dataGrid);
     for(int i=0; i<_width; i++)
-        setColumnInfo(i, nonogram.columnInfo(i));
+        _columnInfo[i].append(nonogram._columnInfo[i]);
     for(int i=0; i<_height; i++)
-        setRowInfo(i, nonogram.rowInfo(i));
+        _rowInfo[i].append(nonogram._rowInfo[i]);
 }
 
 Nonogram::~Nonogram(){
@@ -29,14 +24,13 @@ Nonogram::~Nonogram(){
 void Nonogram::init(int width, int height){
     _width=width;
     _height=height;
-    _dataGrid=shared_ptr<CellStatus>(new CellStatus[_width*_height], default_delete<CellStatus[]>());
-    memset(_dataGrid.get(), Unknown, _width*_height);
-    _columnInfo=shared_ptr<InfoListType>(new InfoListType[_width], default_delete<QList<quint16>[]>());;
-    _rowInfo=shared_ptr<InfoListType>(new InfoListType[_height], default_delete<QList<quint16>[]>());;
+    _dataGrid=QVector<CellStatus>(_width*_height, Unknown);
+    _columnInfo=QVector<InfoListType>(_width);
+    _rowInfo=QVector<InfoListType>(_height);
 }
 
 bool Nonogram::isValid() const{
-    return (_width && _height && _dataGrid && _columnInfo && _rowInfo);
+    return (_width && _height && _dataGrid.count() && _columnInfo.count() && _rowInfo.count());
 }
 
 bool Nonogram::isSolveable() const{
@@ -45,9 +39,9 @@ bool Nonogram::isSolveable() const{
     int columnSum=0;
     for(int c=0; c<_width; c++){
         int infoSum=0;
-        for(int value:columnInfo(c))
+        for(int value:_columnInfo[c])
             infoSum+=value;
-        if (infoSum+columnInfo(c).count()-1>_height)
+        if (infoSum+_columnInfo[c].count()-1>_height)
             return false;
         columnSum+=infoSum;
     }
@@ -63,50 +57,47 @@ bool Nonogram::isSolveable() const{
     return columnSum==rowSum;
 }
 
+void Nonogram::setData(int row, int column, CellStatus value) {
+    _dataGrid[row*_width+column]=value;
+    emit dataChanged(row, column);
+}
 
 void Nonogram::setColumnInfo(int column, const InfoListType& newInfo) {
-    InfoListType& info=_columnInfo.get()[column];
+    InfoListType& info=_columnInfo[column];
     info.clear();
     info.append(newInfo);
     emit columnInfoChanged(column);
 }
 
 void Nonogram::setRowInfo(int row, const InfoListType& newInfo) {
-    InfoListType& info=_rowInfo.get()[row];
+    InfoListType& info=_rowInfo[row];
     info.clear();
     info.append(newInfo);
     emit rowInfoChanged(row);
 }
 
+bool Nonogram::operator== (const Nonogram& n)const{
+    return (n.width()==_width && n.height()== _height && n._dataGrid==_dataGrid &&
+            n._columnInfo==_columnInfo && n._rowInfo==_rowInfo);
+}
 
 QDataStream& operator>>(QDataStream& dataStream, Nonogram& nonogram){
-    quint16 width=0, height=0;
+    int width=0, height=0;
     dataStream >> width >> height;
     if (width==0 || height==0)
         return dataStream;
     nonogram.init(width, height);
-    int dataSize=dataStream.readRawData((char*)nonogram.data(), width*height);
+
+    int dataSize=dataStream.readRawData((char*)nonogram._dataGrid.data(), width*height);
     if (dataSize!=width*height)
         return dataStream;
-    InfoListType info;
-    for(quint16 i=0; i<width; i++){
-        dataStream >> info;
-        nonogram.setColumnInfo(i, info);
-    }
-    for(quint16 i=0; i<height; i++){
-        dataStream >> info;
-        nonogram.setRowInfo(i, info);
-    }
+    dataStream >> nonogram._columnInfo >> nonogram._rowInfo;
     return dataStream;
 }
 
 QDataStream& operator<<(QDataStream& dataStream, const Nonogram& nonogram){
-    quint16 width=nonogram.width(), height=nonogram.height();
-    dataStream << width << height;
-    dataStream.writeRawData((char*)(nonogram.data()), width*height);
-    for(uint i=0; i<width; i++)
-        dataStream << nonogram.columnInfo(i);
-    for(uint i=0; i<height; i++)
-        dataStream << nonogram.rowInfo(i);
+    dataStream << nonogram._width << nonogram._height;
+    dataStream.writeRawData((char*)nonogram._dataGrid.data(), nonogram._width * nonogram._height);
+    dataStream << nonogram._columnInfo << nonogram._rowInfo;
     return dataStream;
 }

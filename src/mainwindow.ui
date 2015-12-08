@@ -20,32 +20,23 @@
       <property name="editTriggers">
        <set>QAbstractItemView::AnyKeyPressed|QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
       </property>
-      <property name="wordWrap">
-       <bool>true</bool>
+      <property name="verticalScrollMode">
+       <enum>QAbstractItemView::ScrollPerPixel</enum>
+      </property>
+      <property name="horizontalScrollMode">
+       <enum>QAbstractItemView::ScrollPerPixel</enum>
       </property>
       <attribute name="horizontalHeaderVisible">
        <bool>false</bool>
       </attribute>
-      <attribute name="horizontalHeaderDefaultSectionSize">
-       <number>24</number>
-      </attribute>
-      <attribute name="horizontalHeaderHighlightSections">
-       <bool>false</bool>
-      </attribute>
       <attribute name="horizontalHeaderMinimumSectionSize">
-       <number>24</number>
+       <number>0</number>
       </attribute>
       <attribute name="verticalHeaderVisible">
        <bool>false</bool>
       </attribute>
-      <attribute name="verticalHeaderDefaultSectionSize">
-       <number>24</number>
-      </attribute>
-      <attribute name="verticalHeaderHighlightSections">
-       <bool>false</bool>
-      </attribute>
       <attribute name="verticalHeaderMinimumSectionSize">
-       <number>24</number>
+       <number>0</number>
       </attribute>
      </widget>
     </item>
