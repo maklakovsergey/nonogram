@@ -22,6 +22,7 @@ signals:
 
 private slots:
     void onItemChanged();
+    void refreshData(int row, int column);
     void refreshRow(int row);
     void refreshColumn(int column);
 private:

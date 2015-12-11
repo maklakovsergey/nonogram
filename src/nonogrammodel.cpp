@@ -113,6 +113,7 @@ void NonogramModel::setNonogram(Nonogram* nonogram){
     _nonogram=nonogram;
     connect(_nonogram, SIGNAL(columnInfoChanged(int)), this, SLOT(refreshColumn(int)));
     connect(_nonogram, SIGNAL(rowInfoChanged(int)), this, SLOT(refreshRow(int)));
+    connect(_nonogram, SIGNAL(dataChanged(int,int)), this, SLOT(refreshData(int,int)));
     refreshInfo();
 }
 
@@ -133,13 +134,15 @@ void NonogramModel::refreshInfo(){
     _dataBlockColumn=_maxRowInfo+(_editing?1:0);
     _dataBlockRow=_maxColumnInfo+(_editing?1:0);
 
+    beginResetModel();
+
     setColumnCount(_dataBlockColumn+columnCount);
     setRowCount(_dataBlockRow+rowCount);
-    disconnect(this, itemChanged, this, onItemChanged);
 
     for(int c=0; c<_dataBlockColumn; c++)
         for(int r=0; r<_dataBlockRow; r++)
             setItem(r, c, itemPrototype()->clone());
+
     for(int r=0; r<rowCount; r++)
         refreshRow(r);
     for(int c=0; c<columnCount; c++)
@@ -151,11 +154,11 @@ void NonogramModel::refreshInfo(){
         for(int c=0; c<columnCount; c++)
             setupAddItem(itemAt(_maxColumnInfo, c+_dataBlockColumn));
     }
-    for(int c=0; c<columnCount; c++)
-        for(int r=0; r<rowCount; r++){
-            setupDataItem(itemAt(r+_dataBlockRow, c+_dataBlockColumn), _nonogram->data(c, r));
-        }
-    connect(this, itemChanged, this, onItemChanged);
+    for(int r=0; r<rowCount; r++)
+        for(int c=0; c<columnCount; c++)
+            refreshData(r, c);
+
+    endResetModel();
 }
 
 void NonogramModel::refreshRow(int row){
@@ -219,4 +222,8 @@ void NonogramModel::refreshColumn(int column){
             text=QString::number(info[info.count()-r-1]);
         setupInfoItem(itemAt(_maxColumnInfo-r-1, column+_dataBlockColumn), text);
     }
+}
+\
+void NonogramModel::refreshData(int row, int column){
+    setupDataItem(itemAt(row+_dataBlockRow, column+_dataBlockColumn), _nonogram->data(row, column));
 }

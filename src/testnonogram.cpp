@@ -120,6 +120,15 @@ void TestNonogram::fillRandomData(Nonogram* n){
             n->setData(r, c, (Nonogram::CellStatus)(rand()%3));
 }
 
+void TestNonogram::solve(){
+    Nonogram heart;
+    initHeartNonogram(heart);
+    QVERIFY(heart.solve());
+    Nonogram car;
+    initCarNonogram(car);
+    QVERIFY(car.solve());
+}
+
 void TestNonogram::saveLoad(){
     Nonogram n;
     initCarNonogram(n);

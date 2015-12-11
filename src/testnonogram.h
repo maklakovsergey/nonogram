@@ -19,7 +19,7 @@ private:
 private slots:
     void builtinNonograms();
     void saveLoad();
-
+    void solve();
 };
 
 #endif // TESTNONOGRAM_H

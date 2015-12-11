@@ -40,6 +40,8 @@ public:
 
     bool operator== (const Nonogram& n)const;
     bool operator!= (const Nonogram& n)const {return !(*this == n);}
+
+    bool solve();
 signals:
     void dataChanged(int row, int column);
     void columnInfoChanged(int column);
@@ -52,6 +54,8 @@ private:
     QVector<CellStatus> _dataGrid;
     QVector<InfoListType> _columnInfo;
     QVector<InfoListType> _rowInfo;
+
+    void saveImage();
 
     friend QDataStream& operator>>(QDataStream& in, Nonogram& nonogram);
     friend QDataStream& operator<<(QDataStream& out, const Nonogram& nonogram);

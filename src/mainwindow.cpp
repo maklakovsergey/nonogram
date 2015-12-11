@@ -9,6 +9,8 @@
 #include <QFileDialog>
 #include <QShortcut>
 #include <QKeyEvent>
+#include <QFileOpenEvent>
+#include <QtConcurrent/QtConcurrent>
 
 using namespace std;
 
@@ -52,13 +54,23 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableView->setStyleSheet("QTableView { gridline-color: black } ");
 
-    setNonogram(createRandomNonogram());
+//    setNonogram(new Nonogram(15, 20));
     QShortcut* shortcut = new QShortcut(QKeySequence(QKeySequence::Delete), ui->tableView);
     connect(shortcut, SIGNAL(activated()), this, SLOT(deleteCell()));
 }
 
 MainWindow::~MainWindow(){
 
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event){
+    QFileOpenEvent* fileEvent=dynamic_cast<QFileOpenEvent*>(event);
+    if (fileEvent){
+        open(fileEvent->file());
+        return true;
+    }
+    else
+        return QMainWindow::eventFilter(obj, event);
 }
 
 void MainWindow::deleteCell()
@@ -76,34 +88,50 @@ void MainWindow::newFile(){
         setNonogram(new Nonogram(newFileDialog.widthSpinBox->value(), newFileDialog.heightSpinBox->value()));
 }
 
+void MainWindow::open(const QString& fileName){
+    QFile file(fileName);
+    if (file.open(QIODevice::ReadOnly)){
+        QDataStream out(&file);
+        Nonogram* nonogram=new Nonogram;
+        out >> *nonogram;
+        if (nonogram->isValid())
+            setNonogram(nonogram);
+        else {
+            QMessageBox mbox(QMessageBox::Critical, tr("Open File"), tr("Open File Failed"), QMessageBox::Ok, this);
+            mbox.exec();
+        }
+    }
+}
+
+void MainWindow::save(const QString& fileName){
+    QFile file(fileName);
+    if (file.open(QIODevice::WriteOnly)){
+        QDataStream out(&file);
+        out << *_nonogram;
+    }
+}
+
 void MainWindow::openFile(){
     QString fileName = QFileDialog::getOpenFileName(this,
         tr("Open File"), "", tr("Nonogram Files (*.nom)"));
-    if (!fileName.isEmpty()){
-        QFile file(fileName);
-        if (file.open(QIODevice::ReadOnly)){
-            QDataStream out(&file);
-            Nonogram* nonogram=new Nonogram;
-            out >> *nonogram;
-            if (nonogram->isValid())
-                setNonogram(nonogram);
-            else {
-                QMessageBox mbox(QMessageBox::Critical, tr("Open File"), tr("Open File Failed"), QMessageBox::Ok, this);
-                mbox.exec();
-            }
-        }
-    }
+    if (!fileName.isEmpty())
+        open(fileName);
 }
 
 void MainWindow::saveFile(){
     QString fileName = QFileDialog::getSaveFileName(this,
         tr("Save File"), "", tr("Nonogram Files (*.nom)"));
-    if (!fileName.isEmpty()){
-        QFile file(fileName);
-        if (file.open(QIODevice::WriteOnly)){
-            QDataStream out(&file);
-            out << *_nonogram;
-        }
+    if (!fileName.isEmpty())
+        save(fileName);
+}
+
+void MainWindow::solve(){
+    if (!_nonogram->isSolveable()){
+        QMessageBox mbox(QMessageBox::Critical, tr("Solve"), tr("Nonogram contains wrong data, please check"), QMessageBox::Ok, this);
+        mbox.exec();
+    }
+    else{
+        QtConcurrent::run(_nonogram.get(), &Nonogram::solve);
     }
 }
 
@@ -111,4 +139,5 @@ void MainWindow::setNonogram(Nonogram* nonogram){
     _nonogram=shared_ptr<Nonogram>(nonogram);
     _nonogramModel.setNonogram(nonogram);
     ui->action_save->setEnabled(nonogram!=NULL);
+    ui->action_solve->setEnabled(nonogram!=NULL);
 }
