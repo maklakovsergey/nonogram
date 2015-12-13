@@ -38,17 +38,26 @@ public:
     void setColumnInfo(int column, const InfoListType& newInfo);
     void setRowInfo(int row, const InfoListType& newInfo);
 
+    void insertRow(int position);
+    void insertColumn(int position);
+    void removeRow(int position);
+    void removeColumn(int position);
+
     bool operator== (const Nonogram& n)const;
     bool operator!= (const Nonogram& n)const {return !(*this == n);}
 
     bool solve();
 signals:
     void dataChanged(int row, int column);
-    void columnInfoChanged(int column);
     void rowInfoChanged(int row);
+    void columnInfoChanged(int column);
+    void rowInserted(int row);
+    void columnInserted(int column);
+    void rowRemoved(int row);
+    void columnRemoved(int column);
 public slots:
 
-private:
+protected:
     int _width;
     int _height;
     QVector<CellStatus> _dataGrid;

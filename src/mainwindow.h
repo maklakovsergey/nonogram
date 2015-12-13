@@ -22,9 +22,15 @@ public:
     void save(const QString& file);
     bool eventFilter(QObject *obj, QEvent *event);
 private slots:
-    void newFile();
-    void openFile();
-    void saveFile();
+    void fileNew();
+    void fileOpen();
+    void fileSave();
+    void editRowInsertAbove();
+    void editRowInsertBelow();
+    void editRowRemoveCurrent();
+    void editColumnInsertLeft();
+    void editColumnInsertRight();
+    void editColumnRemoveCurrent();
     void deleteCell();
     void solve();
 private:

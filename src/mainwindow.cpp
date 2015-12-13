@@ -56,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 //    setNonogram(new Nonogram(15, 20));
     QShortcut* shortcut = new QShortcut(QKeySequence(QKeySequence::Delete), ui->tableView);
-    connect(shortcut, SIGNAL(activated()), this, SLOT(deleteCell()));
+    connect(shortcut, &QShortcut::activated, this, MainWindow::deleteCell);
 }
 
 MainWindow::~MainWindow(){
@@ -80,7 +80,7 @@ void MainWindow::deleteCell()
        ui->tableView->model()->setData(idx, "");
 }
 
-void MainWindow::newFile(){
+void MainWindow::fileNew(){
     Ui::Dialog newFileDialog;
     QDialog dialog(this, Qt::WindowCloseButtonHint| Qt::CustomizeWindowHint| Qt::WindowTitleHint);
     newFileDialog.setupUi(&dialog);
@@ -111,18 +111,80 @@ void MainWindow::save(const QString& fileName){
     }
 }
 
-void MainWindow::openFile(){
+void MainWindow::fileOpen(){
     QString fileName = QFileDialog::getOpenFileName(this,
         tr("Open File"), "", tr("Nonogram Files (*.nom)"));
     if (!fileName.isEmpty())
         open(fileName);
 }
 
-void MainWindow::saveFile(){
+void MainWindow::fileSave(){
     QString fileName = QFileDialog::getSaveFileName(this,
         tr("Save File"), "", tr("Nonogram Files (*.nom)"));
     if (!fileName.isEmpty())
         save(fileName);
+}
+
+void MainWindow::editRowInsertAbove(){
+    QModelIndex selectedIndex=ui->tableView->currentIndex();
+    if (!selectedIndex.isValid())
+        return;
+    int rowNo=selectedIndex.row()-_nonogramModel.dataBlockRow();
+    if (rowNo<0)
+        return;
+    _nonogram->insertRow(rowNo);
+    ui->tableView->setCurrentIndex(_nonogramModel.index(selectedIndex.row()+1, selectedIndex.column()));
+}
+
+void MainWindow::editRowInsertBelow(){
+    QModelIndex selectedIndex=ui->tableView->currentIndex();
+    if (!selectedIndex.isValid())
+        return;
+    int rowNo=selectedIndex.row()-_nonogramModel.dataBlockRow();
+    if (rowNo<0)
+        return;
+    _nonogram->insertRow(rowNo+1);
+}
+
+void MainWindow::editRowRemoveCurrent(){
+    QModelIndex selectedIndex=ui->tableView->currentIndex();
+    if (!selectedIndex.isValid())
+        return;
+    int rowNo=selectedIndex.row()-_nonogramModel.dataBlockRow();
+    if (rowNo<0)
+        return;
+    _nonogram->removeRow(rowNo);
+}
+
+void MainWindow::editColumnInsertLeft(){
+    QModelIndex selectedIndex=ui->tableView->currentIndex();
+    if (!selectedIndex.isValid())
+        return;
+    int columnNo=selectedIndex.column()-_nonogramModel.dataBlockColumn();
+    if (columnNo<0)
+        return;
+    _nonogram->insertColumn(columnNo);
+    ui->tableView->setCurrentIndex(_nonogramModel.index(selectedIndex.row(), selectedIndex.column()+1));
+}
+
+void MainWindow::editColumnInsertRight(){
+    QModelIndex selectedIndex=ui->tableView->currentIndex();
+    if (!selectedIndex.isValid())
+        return;
+    int columnNo=selectedIndex.column()-_nonogramModel.dataBlockColumn();
+    if (columnNo<0)
+        return;
+    _nonogram->insertColumn(columnNo+1);
+}
+
+void MainWindow::editColumnRemoveCurrent(){
+    QModelIndex selectedIndex=ui->tableView->currentIndex();
+    if (!selectedIndex.isValid())
+        return;
+    int columnNo=selectedIndex.column()-_nonogramModel.dataBlockColumn();
+    if (columnNo<0)
+        return;
+    _nonogram->removeColumn(columnNo);
 }
 
 void MainWindow::solve(){
@@ -130,9 +192,8 @@ void MainWindow::solve(){
         QMessageBox mbox(QMessageBox::Critical, tr("Solve"), tr("Nonogram contains wrong data, please check"), QMessageBox::Ok, this);
         mbox.exec();
     }
-    else{
+    else
         QtConcurrent::run(_nonogram.get(), &Nonogram::solve);
-    }
 }
 
 void MainWindow::setNonogram(Nonogram* nonogram){

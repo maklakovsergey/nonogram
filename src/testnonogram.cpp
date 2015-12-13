@@ -1,3 +1,4 @@
+
 #include "testnonogram.h"
 #include <QtTest/QTest>
 
@@ -5,6 +6,7 @@ TestNonogram::TestNonogram(QObject *parent) : QObject(parent)
 {
 
 }
+#ifdef QT_DEBUG
 
 void TestNonogram::initHeartNonogram(Nonogram& n){
     //https://upload.wikimedia.org/wikipedia/ru/a/ad/Step4.png
@@ -143,3 +145,4 @@ void TestNonogram::saveLoad(){
     QCOMPARE(m, n);
 }
 
+#endif //QT_DEBUG

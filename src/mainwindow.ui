@@ -48,7 +48,7 @@
      <x>0</x>
      <y>0</y>
      <width>703</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -67,7 +67,31 @@
     </property>
     <addaction name="action_solve"/>
    </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <widget class="QMenu" name="menuRows">
+     <property name="title">
+      <string>Row</string>
+     </property>
+     <addaction name="action_row_insert_above"/>
+     <addaction name="action_row_insert_below"/>
+     <addaction name="action_row_remove_current"/>
+    </widget>
+    <widget class="QMenu" name="menuColumn">
+     <property name="title">
+      <string>Column</string>
+     </property>
+     <addaction name="action_column_insert_left"/>
+     <addaction name="action_column_insert_right"/>
+     <addaction name="action_column_remove_current"/>
+    </widget>
+    <addaction name="menuRows"/>
+    <addaction name="menuColumn"/>
+   </widget>
    <addaction name="menu"/>
+   <addaction name="menuEdit"/>
    <addaction name="menuSolve"/>
   </widget>
   <action name="action_open">
@@ -98,6 +122,56 @@
     <string>Solve</string>
    </property>
   </action>
+  <action name="actionAdd_row">
+   <property name="text">
+    <string>Add row below</string>
+   </property>
+  </action>
+  <action name="actionAdd_column">
+   <property name="text">
+    <string>Add column right</string>
+   </property>
+  </action>
+  <action name="actionRemove_row">
+   <property name="text">
+    <string>Remove current row</string>
+   </property>
+  </action>
+  <action name="actionRemove_column">
+   <property name="text">
+    <string>Remove current column</string>
+   </property>
+  </action>
+  <action name="action_row_insert_above">
+   <property name="text">
+    <string>Insert above</string>
+   </property>
+  </action>
+  <action name="action_row_insert_below">
+   <property name="text">
+    <string>Insert below</string>
+   </property>
+  </action>
+  <action name="action_row_remove_current">
+   <property name="text">
+    <string>Remove current</string>
+   </property>
+  </action>
+  <action name="action_column_insert_left">
+   <property name="text">
+    <string>Insert left</string>
+   </property>
+  </action>
+  <action name="action_column_insert_right">
+   <property name="text">
+    <string>Insert right</string>
+   </property>
+  </action>
+  <action name="action_column_remove_current">
+   <property name="text">
+    <string>Remove current</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>
@@ -106,7 +180,7 @@
    <sender>action_new</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>newFile()</slot>
+   <slot>fileNew()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -122,7 +196,7 @@
    <sender>action_open</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>openFile()</slot>
+   <slot>fileOpen()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -138,7 +212,7 @@
    <sender>action_save</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>saveFile()</slot>
+   <slot>fileSave()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -182,11 +256,113 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>action_row_insert_above</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>editRowInsertAbove()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>351</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_row_insert_below</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>editRowInsertBelow()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>351</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_column_insert_left</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>editColumnInsertLeft()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>351</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_column_insert_right</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>editColumnInsertRight()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>351</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_column_remove_current</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>editColumnRemoveCurrent()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>351</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>action_row_remove_current</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>editRowRemoveCurrent()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>351</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
-  <slot>newFile()</slot>
-  <slot>openFile()</slot>
-  <slot>saveFile()</slot>
+  <slot>fileNew()</slot>
+  <slot>fileOpen()</slot>
+  <slot>fileSave()</slot>
   <slot>solve()</slot>
+  <slot>editRowInsertAbove()</slot>
+  <slot>editRowInsertBelow()</slot>
+  <slot>editRowRemoveCurrent()</slot>
+  <slot>editColumnInsertLeft()</slot>
+  <slot>editColumnInsertRight()</slot>
+  <slot>editColumnRemoveCurrent()</slot>
  </slots>
 </ui>

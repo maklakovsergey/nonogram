@@ -4,14 +4,15 @@
 #
 #-------------------------------------------------
 
-QT       += core gui testlib concurrent
+QT       += core gui concurrent
 CONFIG   += c++11
+
+Debug:QT+=testlib
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = Nonogram
 TEMPLATE = app
-
 
 SOURCES += main.cpp\
         mainwindow.cpp \

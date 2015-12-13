@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <QImage>
 #include <QColor>
-#include <QTest>
+#include <QtConcurrent>
 
 Nonogram::Nonogram(QObject *parent) : QObject(parent){
     _width=0;
@@ -119,38 +119,106 @@ bool solveLine(Nonogram::CellStatus line[], const int lineSize, const InfoListTy
 bool Nonogram::solve(){
     if (!isSolveable())
         return false;
-    CellStatus row[_width];
-    CellStatus column[_height];
     bool error=false;
     int unsolvedCount=_dataGrid.count(Nonogram::Unknown);
     qDebug()<<"unsolved"<<unsolvedCount;
+
+    QVector<bool> needCheckRow, needCheckColumn;
+    needCheckRow.fill(true, _height);
+    needCheckColumn.fill(true, _width);
+    for(int r=0;r<_height; r++){
+        bool needCheck=false;
+        for(int c=0;c<_width; c++)
+            if (data(r,c)!=Unknown){
+                needCheck=true;
+                break;
+            }
+        if (!needCheck){
+            int sum=0,max=0;
+            for(int value:_rowInfo[r]){
+                sum+=value+1;
+                if (value>max)
+                    max=value;
+            }
+            if (_width-(sum-1)<max)
+                needCheck=true;
+        }
+        needCheckRow[r]=needCheck;
+    }
+    for(int c=0;c<_width; c++){
+        bool needCheck=false;
+        for(int r=0;r<_height; r++)
+            if (data(r,c)!=Unknown){
+                needCheck=true;
+                break;
+            }
+        if (!needCheck){
+            int sum=0,max=0;
+            for(int value:_columnInfo[c]){
+                sum+=value+1;
+                if (value>max)
+                    max=value;
+            }
+            if (_height-(sum-1)<max)
+                needCheck=true;
+        }
+        needCheckColumn[c]=needCheck;
+    }
+
     while (unsolvedCount>0 && !error){
-        for(int r=0;r<_height && !error; r++){
-            for(int c=0;c<_width; c++)
-                row[c]=data(r,c);
-            if (!solveLine(row, _width, _rowInfo[r])){
-                qDebug()<<"error in row"<<r;
+        QList<QFuture<bool>> operations;
+        for(int r=0; r<_height&& !error; r++)
+            operations.append(QtConcurrent::run([](Nonogram* n, int r){
+                CellStatus row[n->_width];
+                for(int c=0;c<n->_width; c++)
+                    row[c]=n->data(r,c);
+                if (!solveLine(row, n->_width, n->_rowInfo[r])){
+                    qDebug()<<"error in row"<<r;
+                    return false;
+                }
+                else
+                    for(int c=0; c<n->_width; c++)
+                        if (row[c]!=Unknown && n->data(r,c)==Unknown)
+                            n->setData(r,c,row[c]);
+                return true;
+            }, this, r));
+
+        qDebug()<<"waiting";
+        for(auto future:operations){
+            future.waitForFinished();
+            if (!future.result())
                 error=true;
-            }
-            else
-                for(int c=0; c<_width; c++)
-                    if (row[c]!=Unknown && data(r,c)==Unknown)
-                        setData(r,c,row[c]);
         }
-        for(int c=0;c<_width && !error; c++){
-            for(int r=0;r<_height; r++)
-                column[r]=data(r,c);
-            if (!solveLine(column, _height, _columnInfo[c])){
-                qDebug()<<"error in column"<<c;
+        operations.clear();
+        qDebug()<<"waited";
+        for(int c=0; c<_width && !error; c++)
+            operations.append(QtConcurrent::run([](Nonogram* n, int c){
+                CellStatus column[n->_height];
+                for(int r=0;r<n->_height; r++)
+                    column[r]=n->data(r,c);
+                if (!solveLine(column,n-> _height, n->_columnInfo[c])){
+                    qDebug()<<"error in column"<<c;
+                    return false;
+                }
+                else
+                    for(int r=0;r<n->_height; r++)
+                        if (column[r]!=Unknown && n->data(r,c)==Unknown)
+                            n->setData(r,c,column[r]);
+                return true;
+            }, this, c));
+
+        qDebug()<<"waiting";
+        for(auto future:operations){
+            future.waitForFinished();
+            if (!future.result())
                 error=true;
-            }
-            else
-                for(int r=0;r<_height; r++)
-                    if (column[r]!=Unknown && data(r,c)==Unknown)
-                        setData(r,c,column[r]);
         }
+        operations.clear();
+        qDebug()<<"waited";
+
         int newUnsolvedCount=_dataGrid.count(Nonogram::Unknown);
         if (newUnsolvedCount==unsolvedCount && !error){
+            saveImage();
             int row=0, column=0;
             for(int r=0;r<_height; r++)
                 for(int c=0;c<_width; c++)
@@ -179,8 +247,8 @@ bool Nonogram::solve(){
         }
         unsolvedCount=newUnsolvedCount;
         qDebug()<<"unsolved"<<unsolvedCount;
-        saveImage();
     }
+    saveImage();
     qDebug("end solve");
     return !error;
 }
@@ -194,7 +262,7 @@ void Nonogram::saveImage(){
             case Free:    color=Qt::white; break;
             case Full:    color=Qt::black; break;
             case Unknown: color=Qt::gray;  break;
-            default: break;
+            default:      color=Qt::gray;  break;
             }
             image.setPixel(c, r, QColor(color).rgb());
         }
@@ -218,6 +286,98 @@ void Nonogram::setRowInfo(int row, const InfoListType& newInfo) {
     info.clear();
     info.append(newInfo);
     emit rowInfoChanged(row);
+}
+
+void Nonogram::insertRow(int position){
+    if (position<0|| position>_height){
+        qDebug()<<"cannot insert row at"<<position<<"current height"<<_height;
+        return;
+    }
+    CellStatus dataGrid[_width*_height];
+    memcpy(dataGrid, _dataGrid.data(), _width*_height*sizeof(CellStatus));
+
+    int newHeight=_height+1;
+    _dataGrid.resize(_width*newHeight);
+    for(int r=0; r<position; r++)
+        for(int c=0; c<_width; c++)
+            _dataGrid[r*_width+c]=dataGrid[r*_width+c];
+    for(int c=0; c<_width; c++)
+        _dataGrid[position*_width+c]=Unknown;
+    for(int r=position+1; r<newHeight; r++)
+        for(int c=0; c<_width; c++)
+            _dataGrid[r*_width+c]=dataGrid[(r-1)*_width+c];
+    _rowInfo.insert(position, InfoListType());
+    _height=newHeight;
+
+    emit rowInserted(position);
+}
+
+void Nonogram::insertColumn(int position){
+    if (position<0 || position>_width){
+        qDebug()<<"cannot insert column at"<<position<<"current width"<<_width;
+        return;
+    }
+    CellStatus dataGrid[_width*_height];
+    memcpy(dataGrid, _dataGrid.data(), _width*_height*sizeof(CellStatus));
+
+    int newWidth=_width+1;
+    _dataGrid.resize(newWidth*_height);
+    for(int c=0; c<position; c++)
+        for(int r=0; r<_height; r++)
+            _dataGrid[r*newWidth+c]=dataGrid[r*_width+c];
+    for(int r=0; r<_height; r++)
+        _dataGrid[r*newWidth+position]=Unknown;
+    for(int c=position+1; c<newWidth; c++)
+        for(int r=0; r<_height; r++)
+            _dataGrid[r*newWidth+c]=dataGrid[r*_width+c-1];
+    _columnInfo.insert(position, InfoListType());
+    _width=newWidth;
+
+    emit columnInserted(position);
+}
+
+void Nonogram::removeRow(int position){
+    if (position<0|| position>_height){
+        qDebug()<<"cannot insert row at"<<position<<"current height"<<_height;
+        return;
+    }
+    CellStatus dataGrid[_width*_height];
+    memcpy(dataGrid, _dataGrid.data(), _width*_height*sizeof(CellStatus));
+
+    int newHeight=_height-1;
+    _dataGrid.resize(_width*newHeight);
+    for(int r=0; r<position; r++)
+        for(int c=0; c<_width; c++)
+            _dataGrid[r*_width+c]=dataGrid[r*_width+c];
+    for(int r=position; r<newHeight; r++)
+        for(int c=0; c<_width; c++)
+            _dataGrid[r*_width+c]=dataGrid[(r+1)*_width+c];
+    _rowInfo.removeAt(position);
+    _height=newHeight;
+
+    emit rowRemoved(position);
+}
+
+void Nonogram::removeColumn(int position){
+    if (position<0 || position>_width){
+        qDebug()<<"cannot insert column at"<<position<<"current width"<<_width;
+        return;
+    }
+    CellStatus dataGrid[_width*_height];
+    memcpy(dataGrid, _dataGrid.data(), _width*_height*sizeof(CellStatus));
+
+    int newWidth=_width-1;
+    _dataGrid.resize(newWidth*_height);
+    for(int c=0; c<position; c++)
+        for(int r=0; r<_height; r++)
+            _dataGrid[r*newWidth+c]=dataGrid[r*_width+c];
+    for(int c=position; c<newWidth; c++)
+        for(int r=0; r<_height; r++)
+            _dataGrid[r*newWidth+c]=dataGrid[r*_width+c+1];
+    _columnInfo.removeAt(position);
+    _width=newWidth;
+
+    emit columnRemoved(position);
 }
 
 bool Nonogram::operator== (const Nonogram& n)const{

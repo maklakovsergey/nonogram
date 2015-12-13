@@ -111,14 +111,17 @@ bool NonogramModel::setData(const QModelIndex &index, const QVariant &value, int
 
 void NonogramModel::setNonogram(Nonogram* nonogram){
     _nonogram=nonogram;
-    connect(_nonogram, SIGNAL(columnInfoChanged(int)), this, SLOT(refreshColumn(int)));
-    connect(_nonogram, SIGNAL(rowInfoChanged(int)), this, SLOT(refreshRow(int)));
-    connect(_nonogram, SIGNAL(dataChanged(int,int)), this, SLOT(refreshData(int,int)));
+    connect(_nonogram, &Nonogram::columnInfoChanged, this, &NonogramModel::refreshColumn);
+    connect(_nonogram, &Nonogram::rowInfoChanged, this, &NonogramModel::refreshRow);
+    connect(_nonogram, &Nonogram::dataChanged, this, &NonogramModel::refreshData, Qt::BlockingQueuedConnection);
+    connect(_nonogram, &Nonogram::rowInserted, this, &NonogramModel::rowInserted);
+    connect(_nonogram, &Nonogram::rowRemoved, this, &NonogramModel::rowRemoved);
+    connect(_nonogram, &Nonogram::columnInserted, this, &NonogramModel::columnInserted);
+    connect(_nonogram, &Nonogram::columnRemoved, this, &NonogramModel::columnRemoved);
     refreshInfo();
 }
 
 void NonogramModel::refreshInfo(){
-    clear();
     int columnCount=_nonogram->width();
     _maxColumnInfo=0;
     for(int i=0; i<columnCount; i++)
@@ -135,6 +138,7 @@ void NonogramModel::refreshInfo(){
     _dataBlockRow=_maxColumnInfo+(_editing?1:0);
 
     beginResetModel();
+    clear();
 
     setColumnCount(_dataBlockColumn+columnCount);
     setRowCount(_dataBlockRow+rowCount);
@@ -161,7 +165,7 @@ void NonogramModel::refreshInfo(){
     endResetModel();
 }
 
-void NonogramModel::refreshRow(int row){
+void NonogramModel::refreshRowInfoSize(){
     int rowCount=_nonogram->height();
     int newMaxRowInfo=0;
     for(int i=0; i<rowCount; i++)
@@ -182,17 +186,9 @@ void NonogramModel::refreshRow(int row){
         removeColumn(0);
     }
     _dataBlockColumn=_maxRowInfo+(_editing?1:0);
-
-    InfoListType info=_nonogram->rowInfo(row);
-    for(int c=0; c<_maxRowInfo; c++){
-        QString text;
-        if (c<info.count())
-            text=QString::number(info[info.count()-1-c]);
-        setupInfoItem(itemAt(row+_dataBlockRow, _maxRowInfo-c-1), text);
-    }
 }
 
-void NonogramModel::refreshColumn(int column){
+void NonogramModel::refreshColumnInfoSize(){
     int columnCount=_nonogram->width();
     int newMaxColumnInfo=0;
     for(int i=0; i<columnCount; i++)
@@ -213,9 +209,24 @@ void NonogramModel::refreshColumn(int column){
         removeRow(0);
     }
     _dataBlockRow=_maxColumnInfo+(_editing?1:0);
+}
+
+void NonogramModel::refreshRow(int row){
+    refreshRowInfoSize();
+
+    InfoListType info=_nonogram->rowInfo(row);
+    for(int c=0; c<_maxRowInfo; c++){
+        QString text;
+        if (c<info.count())
+            text=QString::number(info[info.count()-1-c]);
+        setupInfoItem(itemAt(row+_dataBlockRow, _maxRowInfo-c-1), text);
+    }
+}
+
+void NonogramModel::refreshColumn(int column){
+    refreshColumnInfoSize();
 
     InfoListType info=_nonogram->columnInfo(column);
-
     for(int r=0; r<_maxColumnInfo; r++){
         QString text;
         if (r<info.count())
@@ -223,7 +234,51 @@ void NonogramModel::refreshColumn(int column){
         setupInfoItem(itemAt(_maxColumnInfo-r-1, column+_dataBlockColumn), text);
     }
 }
-\
+
 void NonogramModel::refreshData(int row, int column){
     setupDataItem(itemAt(row+_dataBlockRow, column+_dataBlockColumn), _nonogram->data(row, column));
+}
+
+void NonogramModel::rowInserted(int row){
+    QList<QStandardItem*> newRow;
+    InfoListType info=_nonogram->rowInfo(row);
+    for(int c=0; c<_maxRowInfo; c++){
+        QString text;
+        if (c<info.count())
+            text=QString::number(info[info.count()-c-1]);
+        newRow.append(setupInfoItem(itemPrototype()->clone(), text));
+    }
+    if (_editing)
+        newRow.append(setupAddItem(itemPrototype()->clone()));
+    for(int c=0; c<_nonogram->width(); c++)
+        newRow.append(setupDataItem(itemPrototype()->clone(), _nonogram->data(row, c)));
+    insertRow(_dataBlockRow+row, newRow);
+    refreshRowInfoSize();
+}
+
+void NonogramModel::columnInserted(int column){
+    QList<QStandardItem*> newColumn;
+    InfoListType info=_nonogram->columnInfo(column);
+    for(int r=0; r<_maxColumnInfo; r++){
+        QString text;
+        if (r<info.count())
+            text=QString::number(info[info.count()-r-1]);
+        newColumn.append(setupInfoItem(itemPrototype()->clone(), text));
+    }
+    if (_editing)
+        newColumn.append(setupAddItem(itemPrototype()->clone()));
+    for(int r=0; r<_nonogram->height(); r++)
+        newColumn.append(setupDataItem(itemPrototype()->clone(), _nonogram->data(r, column)));
+    insertColumn(_dataBlockColumn+column, newColumn);
+    refreshColumnInfoSize();
+}
+
+void NonogramModel::rowRemoved(int row){
+    removeRow(_dataBlockRow+row);
+    refreshRowInfoSize();
+}
+
+void NonogramModel::columnRemoved(int column){
+    removeColumn(_dataBlockColumn+column);
+    refreshColumnInfoSize();
 }

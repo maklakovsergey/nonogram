@@ -22,9 +22,14 @@ signals:
 
 private slots:
     void onItemChanged();
+    void refreshInfo();
     void refreshData(int row, int column);
     void refreshRow(int row);
     void refreshColumn(int column);
+    void rowInserted(int row);
+    void columnInserted(int column);
+    void rowRemoved(int row);
+    void columnRemoved(int column);
 private:
     bool _editing;
     Nonogram* _nonogram;
@@ -33,12 +38,13 @@ private:
     int _dataBlockColumn;
     int _dataBlockRow;
 
-    void refreshInfo();
 
     QStandardItem* itemAt(int row, int column);
     QStandardItem* setupInfoItem(QStandardItem* item, const QString& value);
     QStandardItem* setupDataItem(QStandardItem* item, Nonogram::CellStatus status);
     QStandardItem* setupAddItem(QStandardItem *item);
+    void refreshRowInfoSize();
+    void refreshColumnInfoSize();
 };
 
 #endif // NONOGRAMMODEL_H
