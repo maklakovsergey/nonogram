@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "ui_newfiledialog.h"
 #include "nonogramtabledelegate.h"
+#include "exportimagedialog.h"
 #include <QDialog>
 #include <QDebug>
 #include <QFile>
@@ -52,11 +53,13 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tableView->setItemDelegate(delegate);
     ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
     ui->tableView->setStyleSheet("QTableView { gridline-color: black } ");
 
-//    setNonogram(new Nonogram(15, 20));
     QShortcut* shortcut = new QShortcut(QKeySequence(QKeySequence::Delete), ui->tableView);
     connect(shortcut, &QShortcut::activated, this, MainWindow::deleteCell);
+
+    scale=0;
 }
 
 MainWindow::~MainWindow(){
@@ -81,7 +84,7 @@ void MainWindow::deleteCell()
 }
 
 void MainWindow::fileNew(){
-    Ui::Dialog newFileDialog;
+    Ui::NewFileDialog newFileDialog;
     QDialog dialog(this, Qt::WindowCloseButtonHint| Qt::CustomizeWindowHint| Qt::WindowTitleHint);
     newFileDialog.setupUi(&dialog);
     if (dialog.exec()==QDialog::Accepted)
@@ -123,6 +126,16 @@ void MainWindow::fileSave(){
         tr("Save File"), "", tr("Nonogram Files (*.nom)"));
     if (!fileName.isEmpty())
         save(fileName);
+}
+
+void MainWindow::fileExportAsImage(){
+    ExportImageDialog dialog(*_nonogram, this);
+    if (dialog.exec()==QDialog::Accepted){
+        QString fileName = QFileDialog::getSaveFileName(this,
+            tr("Save Image"), "", tr("Image Files (*.png)"));
+        if (!fileName.isEmpty())
+            dialog.image().save(fileName, "png");
+    }
 }
 
 void MainWindow::editRowInsertAbove(){
@@ -201,4 +214,12 @@ void MainWindow::setNonogram(Nonogram* nonogram){
     _nonogramModel.setNonogram(nonogram);
     ui->action_save->setEnabled(nonogram!=NULL);
     ui->action_solve->setEnabled(nonogram!=NULL);
+    adjustTableSize();
+}
+
+void MainWindow::adjustTableSize(){
+    /*QRect rect = ui->tableView->geometry();
+    rect.setWidth(ui->tableView->horizontalHeader()->length()+2*ui->tableView->frameWidth());
+    rect.setHeight(ui->tableView->verticalHeader()->length()+2*ui->tableView->frameWidth());
+    ui->tableView->setGeometry(rect);*/
 }

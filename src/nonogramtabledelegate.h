@@ -18,11 +18,15 @@ public:
     inline int borderWidth() const             {return _borderWidth;}
     inline Qt::GlobalColor borderColor() const {return _borderColor;}
     inline int groupSize() const               {return _groupSize;}
+    inline bool borderVisible() const          {return _borderVisible;}
 
     inline void setCellSize(QSize cellSize)                 {_cellSize=cellSize;}
     inline void setBorderWidth(int borderWidth)             {_borderWidth=borderWidth;}
     inline void setBorderColor(Qt::GlobalColor borderColor) {_borderColor=borderColor;}
     inline void setGroupSize(int groupSize)                 {_groupSize=groupSize;}
+    inline void setBorderVisible(bool borderVisible)        {_borderVisible=borderVisible;}
+
+
 private:
     Qt::Edges edgesForIndex(const QModelIndex &index) const;
 
@@ -30,6 +34,7 @@ private:
     int _borderWidth;
     Qt::GlobalColor _borderColor;
     int _groupSize;
+    bool _borderVisible;
 };
 
 #endif // NONOGRAMTABLEDELEGATE_H

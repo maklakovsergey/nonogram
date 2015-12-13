@@ -8,9 +8,9 @@ TestNonogram::TestNonogram(QObject *parent) : QObject(parent)
 }
 #ifdef QT_DEBUG
 
-void TestNonogram::initHeartNonogram(Nonogram& n){
+Nonogram TestNonogram::heartNonogram(){
     //https://upload.wikimedia.org/wikipedia/ru/a/ad/Step4.png
-    n.init(9,9);
+    Nonogram n(9,9);
     InfoListType columns[9]= {
         {4},
         {6},
@@ -37,11 +37,12 @@ void TestNonogram::initHeartNonogram(Nonogram& n){
     };
     for(int i=0; i<9; i++)
         n.setRowInfo(i, rows[i]);
+    return n;
 }
 
-void TestNonogram::initCarNonogram(Nonogram& n){
+Nonogram TestNonogram::carNonogram(){
     //http://www.nonograms.ru/files/nonograms/large/dzhip_12_1_1p.png
-    n.init(25,20);
+    Nonogram n(25,20);
     InfoListType columns[25]= {
         {3},
         {5,4},
@@ -103,46 +104,104 @@ void TestNonogram::initCarNonogram(Nonogram& n){
     };
     for(int i=0; i<20; i++)
         n.setRowInfo(i, rows[i]);
+    return n;
 }
 
-void TestNonogram::builtinNonograms(){
-    Nonogram heart;
-    initHeartNonogram(heart);
-    QVERIFY(heart.isSolveable());
+Nonogram TestNonogram::clefNonogram(){
+    //http://en.japonskie.ru/crossword/skripichniy_klyuch1
+    Nonogram n(9,20);
+    InfoListType columns[9]= {
+        {5},
+        {7},
+        {2,2},
+        {1,2,1,1},
+        {20},
+        //------
+        {3,1,1,1},
+        {5,2,2},
+        {5},
+        {3},
+    };
+    for(int i=0; i<9; i++)
+        n.setColumnInfo(i, columns[i]);
 
-    Nonogram car;
-    initCarNonogram(car);
-    QVERIFY(car.isSolveable());
-}
+    InfoListType rows[20]={
+        {1},
+        {2},
+        {3},
+        {3},
+        {1,1},
+        //------
+        {1,1},
+        {1,1},
+        {2},
+        {3},
+        {2,1},
+        //------
+        {2,3},
+        {2,2,2},
+        {2,2,2},
+        {2,1,2},
+        {2,1,2},
+        //------
+        {2,1,2},
+        {5},
+        {1},
+        {1},
+        {2},
+    };
+    for(int i=0; i<20; i++)
+        n.setRowInfo(i, rows[i]);
 
-void TestNonogram::fillRandomData(Nonogram* n){
-    int width=n->width(), height=n->height();
-    for(int r=0; r<height; r++)
-        for(int c=0; c<width; c++)
-            n->setData(r, c, (Nonogram::CellStatus)(rand()%3));
+    return n;
 }
 
 void TestNonogram::solve(){
-    Nonogram heart;
-    initHeartNonogram(heart);
+    Nonogram heart=heartNonogram();
+    QVERIFY(heart.isSolveable());
     QVERIFY(heart.solve());
-    Nonogram car;
-    initCarNonogram(car);
+
+    Nonogram car=carNonogram();
+    QVERIFY(car.isSolveable());
     QVERIFY(car.solve());
+
+    Nonogram clef=clefNonogram();
+    QVERIFY(clef.isSolveable());
+    QVERIFY(clef.solve());
+}
+
+void saveAndLoad(const Nonogram &in, Nonogram& out){
+    int memoryUsage=in.width()*in.height()*5;
+    QByteArray storage(memoryUsage, 0);
+    QDataStream writestream(&storage, QIODevice::WriteOnly);
+    writestream << in;
+    QDataStream readstream(&storage, QIODevice::ReadOnly);
+    readstream >> out;
+}
+
+void TestNonogram::fillRandomData(Nonogram& n){
+    int width=n.width(), height=n.height();
+    for(int r=0; r<height; r++)
+        for(int c=0; c<width; c++)
+            n.setData(r, c, (Nonogram::CellStatus)(rand()%3));
 }
 
 void TestNonogram::saveLoad(){
-    Nonogram n;
-    initCarNonogram(n);
-    fillRandomData(&n);
+    Nonogram heart=heartNonogram();
+    Nonogram loaded;
+    fillRandomData(heart);
+    saveAndLoad(heart, loaded);
+    QCOMPARE(heart, loaded);
 
-    QByteArray storage(10240, 0);
-    QDataStream writestream(&storage, QIODevice::WriteOnly);
-    writestream << n;
-    QDataStream readstream(&storage, QIODevice::ReadOnly);
-    Nonogram m;
-    readstream >> m;
-    QCOMPARE(m, n);
+    Nonogram car=carNonogram();
+    fillRandomData(car);
+    saveAndLoad(car, loaded);
+    QCOMPARE(car, loaded);
+
+    Nonogram clef=clefNonogram();
+    fillRandomData(clef);
+    saveAndLoad(clef, loaded);
+    QCOMPARE(clef, loaded);
 }
 
 #endif //QT_DEBUG

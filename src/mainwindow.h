@@ -25,6 +25,7 @@ private slots:
     void fileNew();
     void fileOpen();
     void fileSave();
+    void fileExportAsImage();
     void editRowInsertAbove();
     void editRowInsertBelow();
     void editRowRemoveCurrent();
@@ -34,11 +35,14 @@ private slots:
     void deleteCell();
     void solve();
 private:
+    void adjustTableSize();
     std::shared_ptr<Ui::MainWindow> ui;
     std::shared_ptr<Nonogram> _nonogram;
     NonogramModel _nonogramModel;
+    float scale;
 
     void setNonogram(Nonogram* nonogram);
+
 };
 
 #endif // MAINWINDOW_H

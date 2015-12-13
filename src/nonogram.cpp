@@ -116,16 +116,70 @@ bool solveLine(Nonogram::CellStatus line[], const int lineSize, const InfoListTy
     return true;
 }
 
-bool Nonogram::solve(){
-    if (!isSolveable())
+bool Nonogram::solveRow(int r, QVector<bool>* needCheckColumn){
+    CellStatus row[_width];
+    for(int c=0;c<_width; c++)
+        row[c]=data(r,c);
+    if (!solveLine(row, _width, _rowInfo[r])){
+        qDebug()<<"error in row"<<r;
         return false;
-    bool error=false;
-    int unsolvedCount=_dataGrid.count(Nonogram::Unknown);
-    qDebug()<<"unsolved"<<unsolvedCount;
+    }
+    else
+        for(int c=0; c<_width; c++)
+            if (row[c]!=Unknown && data(r,c)==Unknown){
+                setData(r,c,row[c]);
+                (*needCheckColumn)[c]=true;
+            }
+    return true;
+}
 
-    QVector<bool> needCheckRow, needCheckColumn;
+bool Nonogram::solveColumn(int c, QVector<bool>* needCheckRow){
+    CellStatus column[_height];
+    for(int r=0;r<_height; r++)
+        column[r]=data(r,c);
+    if (!solveLine(column, _height, _columnInfo[c])){
+        qDebug()<<"error in column"<<c;
+        return false;
+    }
+    else
+        for(int r=0;r<_height; r++)
+            if (column[r]!=Unknown && data(r,c)==Unknown){
+                setData(r,c,column[r]);
+                (*needCheckRow)[r]=true;
+            }
+    return true;
+}
+
+void Nonogram::solveBranch(){
+    saveImage();
+    int row=0, column=0;
+    for(int r=0;r<_height; r++)
+        for(int c=0;c<_width; c++)
+            if (data(r, c)==Unknown){
+                row=r;
+                column=c;
+                c=_width;
+                r=_height;
+            }
+
+    Nonogram branch(*this);
+    branch.setData(row, column, Full);
+    qDebug()<<"creating branch";
+    if (branch.solve()){
+        qDebug()<<"branch solved";
+        for(int r=0;r<_height; r++)
+            for(int c=0;c<_width; c++)
+                setData(r, c, branch.data(r, c));
+    }
+    else{
+        qDebug()<<"closing branch";
+        setData(row, column, Free);
+    }
+}
+
+QVector<bool> Nonogram::rowsForInitialCheck(){
+    QVector<bool> needCheckRow;
     needCheckRow.fill(true, _height);
-    needCheckColumn.fill(true, _width);
     for(int r=0;r<_height; r++){
         bool needCheck=false;
         for(int c=0;c<_width; c++)
@@ -145,6 +199,12 @@ bool Nonogram::solve(){
         }
         needCheckRow[r]=needCheck;
     }
+    return needCheckRow;
+}
+
+QVector<bool> Nonogram::columnsForInitialCheck(){
+    QVector<bool> needCheckColumn;
+    needCheckColumn.fill(true, _width);
     for(int c=0;c<_width; c++){
         bool needCheck=false;
         for(int r=0;r<_height; r++)
@@ -164,86 +224,49 @@ bool Nonogram::solve(){
         }
         needCheckColumn[c]=needCheck;
     }
+    return needCheckColumn;
+}
+
+bool Nonogram::solve(){
+    if (!isSolveable())
+        return false;
+    bool error=false;
+    QVector<bool> needCheckRow=rowsForInitialCheck();
+    QVector<bool> needCheckColumn=columnsForInitialCheck();
+    QList<QFuture<bool>> operations;
+
+    int unsolvedCount=_dataGrid.count(Nonogram::Unknown);
+    qDebug()<<"unsolved"<<unsolvedCount;
 
     while (unsolvedCount>0 && !error){
-        QList<QFuture<bool>> operations;
         for(int r=0; r<_height&& !error; r++)
-            operations.append(QtConcurrent::run([](Nonogram* n, int r){
-                CellStatus row[n->_width];
-                for(int c=0;c<n->_width; c++)
-                    row[c]=n->data(r,c);
-                if (!solveLine(row, n->_width, n->_rowInfo[r])){
-                    qDebug()<<"error in row"<<r;
-                    return false;
-                }
-                else
-                    for(int c=0; c<n->_width; c++)
-                        if (row[c]!=Unknown && n->data(r,c)==Unknown)
-                            n->setData(r,c,row[c]);
-                return true;
-            }, this, r));
+            if (needCheckRow[r])
+                operations.append(QtConcurrent::run(this, &Nonogram::solveRow, r, &needCheckColumn));
 
-        qDebug()<<"waiting";
         for(auto future:operations){
             future.waitForFinished();
             if (!future.result())
                 error=true;
         }
         operations.clear();
-        qDebug()<<"waited";
+        needCheckRow.fill(false);
+
         for(int c=0; c<_width && !error; c++)
-            operations.append(QtConcurrent::run([](Nonogram* n, int c){
-                CellStatus column[n->_height];
-                for(int r=0;r<n->_height; r++)
-                    column[r]=n->data(r,c);
-                if (!solveLine(column,n-> _height, n->_columnInfo[c])){
-                    qDebug()<<"error in column"<<c;
-                    return false;
-                }
-                else
-                    for(int r=0;r<n->_height; r++)
-                        if (column[r]!=Unknown && n->data(r,c)==Unknown)
-                            n->setData(r,c,column[r]);
-                return true;
-            }, this, c));
+            if (needCheckColumn[c])
+                operations.append(QtConcurrent::run(this, &Nonogram::solveColumn, c, &needCheckRow));
 
-        qDebug()<<"waiting";
         for(auto future:operations){
             future.waitForFinished();
             if (!future.result())
                 error=true;
         }
         operations.clear();
-        qDebug()<<"waited";
+        needCheckColumn.fill(false);
 
         int newUnsolvedCount=_dataGrid.count(Nonogram::Unknown);
         if (newUnsolvedCount==unsolvedCount && !error){
-            saveImage();
-            int row=0, column=0;
-            for(int r=0;r<_height; r++)
-                for(int c=0;c<_width; c++)
-                    if (data(r, c)==Unknown){
-                        row=r;
-                        column=c;
-                        c=_width;
-                        r=_height;
-                    }
-
-            Nonogram branch(*this);
-            branch.setData(row, column, Full);
-            qDebug()<<"creating branch";
-            if (branch.solve()){
-                qDebug()<<"branch solved";
-                newUnsolvedCount=0;
-                for(int r=0;r<_height; r++)
-                    for(int c=0;c<_width; c++)
-                        setData(r, c, branch.data(r, c));
-            }
-            else{
-                qDebug()<<"closing branch";
-                newUnsolvedCount--;
-                setData(row, column, Free);
-            }
+            solveBranch();
+            newUnsolvedCount=_dataGrid.count(Nonogram::Unknown);
         }
         unsolvedCount=newUnsolvedCount;
         qDebug()<<"unsolved"<<unsolvedCount;

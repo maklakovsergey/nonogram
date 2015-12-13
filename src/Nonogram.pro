@@ -20,17 +20,20 @@ SOURCES += main.cpp\
     nonogramtabledelegate.cpp \
     nonogram.cpp \
     numberlineedit.cpp \
-    testnonogram.cpp
+    testnonogram.cpp \
+    exportimagedialog.cpp
 
 HEADERS  += mainwindow.h \
     nonogrammodel.h \
     nonogramtabledelegate.h \
     nonogram.h \
     numberlineedit.h \
-    testnonogram.h
+    testnonogram.h \
+    exportimagedialog.h
 
 FORMS    += mainwindow.ui \
-    newfiledialog.ui
+    newfiledialog.ui \
+    exportimagedialog.ui
 
 DISTFILES += \
     translations.ts

@@ -6,6 +6,7 @@ NonogramModel::NonogramModel(QObject *parent) : QStandardItemModel(parent)
 {
     _nonogram=NULL;
     _editing=true;
+    _headerVisible=true;
     QStandardItem* prototype=new QStandardItem();
     prototype->setDragEnabled(false);
     prototype->setDropEnabled(false);
@@ -13,6 +14,7 @@ NonogramModel::NonogramModel(QObject *parent) : QStandardItemModel(parent)
     prototype->setEditable(false);
     prototype->setCheckable(false);
     prototype->setTextAlignment(Qt::AlignCenter);
+    prototype->setBackground(QBrush(Qt::white));
     setItemPrototype(prototype);
 }
 
@@ -50,9 +52,6 @@ QStandardItem*  NonogramModel::setupInfoItem(QStandardItem* item, const QString&
     item->setEditable(true);
     item->setText(value);
     return item;
-}
-
-void NonogramModel::onItemChanged(){
 }
 
 bool NonogramModel::setData(const QModelIndex &index, const QVariant &value, int role){
@@ -122,6 +121,8 @@ void NonogramModel::setNonogram(Nonogram* nonogram){
 }
 
 void NonogramModel::refreshInfo(){
+    if (!_nonogram)
+        return;
     int columnCount=_nonogram->width();
     _maxColumnInfo=0;
     for(int i=0; i<columnCount; i++)

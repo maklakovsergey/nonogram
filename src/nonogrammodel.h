@@ -18,11 +18,15 @@ public:
 
     inline int dataBlockRow()const {return _dataBlockRow;}
     inline int dataBlockColumn()const {return _dataBlockColumn;}
+
+    inline bool editing()       const          {return _editing;}
+    inline bool headerVisible() const          {return _headerVisible;}
+    inline void setEditing(bool editing)       {_editing=editing;}
+    inline void setHeaderVisible(bool visible) {_headerVisible=visible;}
+    void refreshInfo();
 signals:
 
 private slots:
-    void onItemChanged();
-    void refreshInfo();
     void refreshData(int row, int column);
     void refreshRow(int row);
     void refreshColumn(int column);
@@ -32,12 +36,12 @@ private slots:
     void columnRemoved(int column);
 private:
     bool _editing;
+    bool _headerVisible;
     Nonogram* _nonogram;
     int _maxColumnInfo;
     int _maxRowInfo;
     int _dataBlockColumn;
     int _dataBlockRow;
-
 
     QStandardItem* itemAt(int row, int column);
     QStandardItem* setupInfoItem(QStandardItem* item, const QString& value);

@@ -5,6 +5,7 @@
 #include <QPainter>
 
 NonogramTableDelegate::NonogramTableDelegate(QObject* parent):QItemDelegate(parent){
+    _borderVisible=true;
 }
 
 QWidget *NonogramTableDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &, const QModelIndex &) const{
@@ -24,39 +25,42 @@ void NonogramTableDelegate::setModelData(QWidget *editor, QAbstractItemModel *mo
 
 QSize NonogramTableDelegate::sizeHint(const QStyleOptionViewItem &, const QModelIndex &index) const{
     QSize size(_cellSize);
-    Qt::Edges edges=edgesForIndex(index);
-    if (edges&Qt::TopEdge)
-        size.setHeight(size.height()+_borderWidth);
-    if (edges&Qt::BottomEdge)
-        size.setHeight(size.height()+_borderWidth);
-    if (edges&Qt::LeftEdge)
-        size.setWidth(size.width()+_borderWidth);
-    if (edges&Qt::RightEdge)
-        size.setWidth(size.width()+_borderWidth);
+    if (_borderVisible){
+        Qt::Edges edges=edgesForIndex(index);
+        if (edges&Qt::TopEdge)
+            size.setHeight(size.height()+_borderWidth);
+        if (edges&Qt::BottomEdge)
+            size.setHeight(size.height()+_borderWidth);
+        if (edges&Qt::LeftEdge)
+            size.setWidth(size.width()+_borderWidth);
+        if (edges&Qt::RightEdge)
+            size.setWidth(size.width()+_borderWidth);
+    }
     return size;
 }
 
 void NonogramTableDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const{
     QStyleOptionViewItem newOption(option);
-    QRect r(option.rect);
-    Qt::Edges edges=edgesForIndex(index);
-    if (edges&Qt::TopEdge){
-        newOption.rect.setY(newOption.rect.y()+_borderWidth);
-        painter->fillRect(r.x(), r.y(), r.width(), _borderWidth, _borderColor);
+    if (_borderVisible){
+        QRect r(option.rect);
+        Qt::Edges edges=edgesForIndex(index);
+        if (edges&Qt::TopEdge){
+            newOption.rect.setY(newOption.rect.y()+_borderWidth);
+            painter->fillRect(r.x(), r.y(), r.width(), _borderWidth, _borderColor);
+        }
+        if (edges&Qt::BottomEdge){
+            newOption.rect.setHeight(newOption.rect.height()-_borderWidth);
+            painter->fillRect(r.x(), r.bottom()-_borderWidth+1, r.width(), _borderWidth, _borderColor);
+        }
+        if (edges&Qt::LeftEdge){
+            newOption.rect.setX(newOption.rect.x()+_borderWidth);
+            painter->fillRect(r.x(), r.y(), _borderWidth, r.height(), _borderColor);
+        }
+        if (edges&Qt::RightEdge){
+            newOption.rect.setWidth(newOption.rect.width()-_borderWidth);
+            painter->fillRect(r.right()-_borderWidth+1, r.y(), _borderWidth, r.height(), _borderColor);
+        }
     }
-    if (edges&Qt::BottomEdge){
-        newOption.rect.setHeight(newOption.rect.height()-_borderWidth);
-        painter->fillRect(r.x(), r.bottom()-_borderWidth+1, r.width(), _borderWidth, _borderColor);
-    }
-    if (edges&Qt::LeftEdge){
-        newOption.rect.setX(newOption.rect.x()+_borderWidth);
-        painter->fillRect(r.x(), r.y(), _borderWidth, r.height(), _borderColor);
-    }
-    if (edges&Qt::RightEdge){
-        newOption.rect.setWidth(newOption.rect.width()-_borderWidth);
-        painter->fillRect(r.right()-_borderWidth+1, r.y(), _borderWidth, r.height(), _borderColor);
-    }
-
     QItemDelegate::paint(painter, newOption, index);
 }
 

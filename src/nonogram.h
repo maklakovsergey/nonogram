@@ -66,10 +66,14 @@ protected:
 
     void saveImage();
 
+    QVector<bool> rowsForInitialCheck();
+    QVector<bool> columnsForInitialCheck();
+    bool solveRow(int r, QVector<bool>* needCheckColumn);
+    bool solveColumn(int c, QVector<bool>* needCheckRow);
+    void solveBranch();
+
     friend QDataStream& operator>>(QDataStream& in, Nonogram& nonogram);
     friend QDataStream& operator<<(QDataStream& out, const Nonogram& nonogram);
 };
-
-
 
 #endif // NONOGRAM_H

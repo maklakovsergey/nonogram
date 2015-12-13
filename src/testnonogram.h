@@ -14,11 +14,11 @@ signals:
 
 #ifdef QT_DEBUG
 private:
-    void initHeartNonogram(Nonogram& n);
-    void initCarNonogram(Nonogram& n);
-    void fillRandomData(Nonogram* n);
+    Nonogram heartNonogram();
+    Nonogram carNonogram();
+    Nonogram clefNonogram();
+    void fillRandomData(Nonogram& n);
 private slots:
-    void builtinNonograms();
     void saveLoad();
     void solve();
 #endif // QT_DEBUG

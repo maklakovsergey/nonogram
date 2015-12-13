@@ -14,8 +14,8 @@
    <string>Nonogram</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
      <widget class="QTableView" name="tableView">
       <property name="editTriggers">
        <set>QAbstractItemView::AnyKeyPressed|QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
@@ -58,6 +58,7 @@
     <addaction name="action_new"/>
     <addaction name="action_open"/>
     <addaction name="action_save"/>
+    <addaction name="action_export_as_image"/>
     <addaction name="separator"/>
     <addaction name="action_quit"/>
    </widget>
@@ -170,6 +171,11 @@
   <action name="action_column_remove_current">
    <property name="text">
     <string>Remove current</string>
+   </property>
+  </action>
+  <action name="action_export_as_image">
+   <property name="text">
+    <string>Export as image</string>
    </property>
   </action>
  </widget>
@@ -352,6 +358,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>action_export_as_image</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>fileExportAsImage()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>351</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>fileNew()</slot>
@@ -364,5 +386,6 @@
   <slot>editColumnInsertLeft()</slot>
   <slot>editColumnInsertRight()</slot>
   <slot>editColumnRemoveCurrent()</slot>
+  <slot>fileExportAsImage()</slot>
  </slots>
 </ui>
