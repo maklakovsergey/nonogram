@@ -13,39 +13,15 @@
 #include <QFileOpenEvent>
 #include <QtConcurrent/QtConcurrent>
 
-using namespace std;
-
-Nonogram* createRandomNonogram(){
-    const int width=15, height=20;
-    Nonogram* n=new Nonogram(width, height);
-    for(int r=0; r<height; r++)
-        for(int c=0; c<width; c++)
-            n->setData(r, c, (Nonogram::CellStatus)(rand()%3));
-    for(int i=0; i<width; i++){
-        int itemsCount=rand()%4+1;
-        InfoListType items;
-        for(int j=0; j<itemsCount; j++)
-            items.append(rand()%9+1);
-        n->setColumnInfo(i, items);
-    }
-    for(int i=0; i<height; i++){
-        int itemsCount=rand()%6+1;
-        InfoListType items;
-        for(int j=0; j<itemsCount; j++)
-            items.append(rand()%9+1);
-        n->setRowInfo(i, items);
-    }
-    return n;
-}
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
+    _nonogram(NULL),
     _nonogramModel(parent)
 {
     ui->setupUi(this);
     ui->tableView->setModel(&_nonogramModel);
-    NonogramTableDelegate* delegate=new NonogramTableDelegate;
+    NonogramTableDelegate* delegate=new NonogramTableDelegate(this);
     delegate->setCellSize(QSize(24, 24));
     delegate->setBorderWidth(2);
     delegate->setBorderColor(Qt::black);
@@ -53,20 +29,23 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tableView->setItemDelegate(delegate);
     ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-
     ui->tableView->setStyleSheet("QTableView { gridline-color: black } ");
+    connect(ui->tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::refreshEditMenu);
 
     QShortcut* shortcut = new QShortcut(QKeySequence(QKeySequence::Delete), ui->tableView);
     connect(shortcut, &QShortcut::activated, this, MainWindow::deleteCell);
 
+    connect(&_solvingTask, &QFutureWatcher<void>::finished, this, &MainWindow::solved);
+    _closeAfterSolve=false;
     scale=0;
 }
 
 MainWindow::~MainWindow(){
-
+    delete ui;
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event){
+    //for opening files from OS X finder
     QFileOpenEvent* fileEvent=dynamic_cast<QFileOpenEvent*>(event);
     if (fileEvent){
         open(fileEvent->file());
@@ -74,6 +53,17 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event){
     }
     else
         return QMainWindow::eventFilter(obj, event);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event){
+    if (_solvingTask.isRunning()){
+        qDebug()<<"abort";
+        _closeAfterSolve=true;
+        _nonogram->abort();
+        event->ignore();
+    }
+    else
+        event->accept();
 }
 
 void MainWindow::deleteCell()
@@ -88,14 +78,14 @@ void MainWindow::fileNew(){
     QDialog dialog(this, Qt::WindowCloseButtonHint| Qt::CustomizeWindowHint| Qt::WindowTitleHint);
     newFileDialog.setupUi(&dialog);
     if (dialog.exec()==QDialog::Accepted)
-        setNonogram(new Nonogram(newFileDialog.widthSpinBox->value(), newFileDialog.heightSpinBox->value()));
+        setNonogram(new Nonogram(newFileDialog.widthSpinBox->value(), newFileDialog.heightSpinBox->value(), this));
 }
 
 void MainWindow::open(const QString& fileName){
     QFile file(fileName);
     if (file.open(QIODevice::ReadOnly)){
         QDataStream out(&file);
-        Nonogram* nonogram=new Nonogram;
+        Nonogram* nonogram=new Nonogram(this);
         out >> *nonogram;
         if (nonogram->isValid())
             setNonogram(nonogram);
@@ -205,21 +195,45 @@ void MainWindow::solve(){
         QMessageBox mbox(QMessageBox::Critical, tr("Solve"), tr("Nonogram contains wrong data, please check"), QMessageBox::Ok, this);
         mbox.exec();
     }
-    else
-        QtConcurrent::run(_nonogram.get(), &Nonogram::solve);
+    else{
+        enableEditing(false);
+        _solvingTask.setFuture(QtConcurrent::run(_nonogram, &Nonogram::solve));
+    }
+}
+
+void MainWindow::solved(){
+    if (_closeAfterSolve)
+        close();
+}
+
+void MainWindow::refreshEditMenu(){
+    bool isDataCell=false;
+    QModelIndex index=ui->tableView->selectionModel()->currentIndex();
+    if (index.isValid())
+        isDataCell=index.row()>=_nonogramModel.dataBlockRow() && index.column()>=_nonogramModel.dataBlockColumn();
+    ui->action_column_insert_left->   setEnabled(_enableEditing && isDataCell);
+    ui->action_column_insert_right->  setEnabled(_enableEditing && isDataCell);
+    ui->action_column_remove_current->setEnabled(_enableEditing && isDataCell);
+    ui->action_row_insert_above->     setEnabled(_enableEditing && isDataCell);
+    ui->action_row_insert_below->     setEnabled(_enableEditing && isDataCell);
+    ui->action_row_remove_current->   setEnabled(_enableEditing && isDataCell);
 }
 
 void MainWindow::setNonogram(Nonogram* nonogram){
-    _nonogram=shared_ptr<Nonogram>(nonogram);
+    if (_nonogram)
+        delete _nonogram;
+    _nonogram=nonogram;
     _nonogramModel.setNonogram(nonogram);
+    enableEditing(true);
     ui->action_save->setEnabled(nonogram!=NULL);
     ui->action_solve->setEnabled(nonogram!=NULL);
-    adjustTableSize();
 }
 
-void MainWindow::adjustTableSize(){
-    /*QRect rect = ui->tableView->geometry();
-    rect.setWidth(ui->tableView->horizontalHeader()->length()+2*ui->tableView->frameWidth());
-    rect.setHeight(ui->tableView->verticalHeader()->length()+2*ui->tableView->frameWidth());
-    ui->tableView->setGeometry(rect);*/
+void MainWindow::enableEditing(bool enableEditing){
+    if (enableEditing!=_enableEditing){
+        _enableEditing=enableEditing;
+        _nonogramModel.setEditing(_enableEditing);
+        _nonogramModel.refreshInfo();
+        refreshEditMenu();
+    }
 }

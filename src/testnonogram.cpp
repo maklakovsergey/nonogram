@@ -2,10 +2,9 @@
 #include "testnonogram.h"
 #include <QtTest/QTest>
 
-TestNonogram::TestNonogram(QObject *parent) : QObject(parent)
-{
-
+TestNonogram::TestNonogram(QObject *parent) : QObject(parent){
 }
+
 #ifdef QT_DEBUG
 
 Nonogram TestNonogram::heartNonogram(){
@@ -179,7 +178,7 @@ void saveAndLoad(const Nonogram &in, Nonogram& out){
     readstream >> out;
 }
 
-void TestNonogram::fillRandomData(Nonogram& n){
+void fillRandomData(Nonogram& n){
     int width=n.width(), height=n.height();
     for(int r=0; r<height; r++)
         for(int c=0; c<width; c++)

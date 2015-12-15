@@ -7,37 +7,45 @@ NonogramModel::NonogramModel(QObject *parent) : QStandardItemModel(parent)
     _nonogram=NULL;
     _editing=true;
     _headerVisible=true;
-    QStandardItem* prototype=new QStandardItem();
-    prototype->setDragEnabled(false);
-    prototype->setDropEnabled(false);
-    prototype->setSelectable(false);
-    prototype->setEditable(false);
-    prototype->setCheckable(false);
-    prototype->setTextAlignment(Qt::AlignCenter);
-    prototype->setBackground(QBrush(Qt::white));
-    setItemPrototype(prototype);
+    QStandardItem* emptyItemPrototype=new QStandardItem();
+    emptyItemPrototype->setFlags(Qt::ItemIsEnabled);
+    emptyItemPrototype->setTextAlignment(Qt::AlignCenter);
+    emptyItemPrototype->setBackground(QBrush(Qt::white));
+    setItemPrototype(emptyItemPrototype);
+
+    //connect(this, &NonogramModel::itemChanged, this, &NonogramModel::onItemChanged);
 }
 
 NonogramModel::~NonogramModel(){
 }
 
-QStandardItem* NonogramModel::itemAt(int row, int column){
-    QStandardItem* itm=item(row, column);
-    if (!itm){
-        itm=itemPrototype()->clone();
-        setItem(row, column, itm);
-    }
-    return itm;
+void NonogramModel::onItemChanged(QStandardItem * item){
+    QModelIndex index(item->index());
+    int row=index.row();
+    int column=index.column();
+    const char* text;
+    if (row>=_dataBlockRow && column>=_dataBlockColumn)
+        text="data";
+    else if (row<_dataBlockRow && column>=_dataBlockColumn)
+        text="row info";
+    else if (row>=_dataBlockRow && column<_dataBlockColumn)
+        text="column info";
+    else
+        text="empty";
+    qDebug()<<row<<column<<text;
 }
 
-QStandardItem*  NonogramModel::setupAddItem(QStandardItem* item){
-    item->setText("+");
-    item->setBackground(QBrush(Qt::lightGray));
+QStandardItem*  NonogramModel::setupAddItem(){
+    QStandardItem* item=itemPrototype()->clone();
     item->setEditable(true);
+    item->setTextAlignment(Qt::AlignCenter);
+    item->setBackground(QBrush(Qt::lightGray));
+    item->setText("+");
     return item;
 }
 
-QStandardItem*  NonogramModel::setupDataItem(QStandardItem* item, Nonogram::CellStatus status){
+QStandardItem*  NonogramModel::setupDataItem(Nonogram::CellStatus status){
+    QStandardItem* item=itemPrototype()->clone();
     switch(status){
     case Nonogram::Full:    item->setBackground(QBrush(Qt::darkGray)); break;
     case Nonogram::Free:    item->setBackground(QBrush(Qt::white)); break;
@@ -47,9 +55,19 @@ QStandardItem*  NonogramModel::setupDataItem(QStandardItem* item, Nonogram::Cell
     return item;
 }
 
-QStandardItem*  NonogramModel::setupInfoItem(QStandardItem* item, const QString& value){
-    item->setBackground(QBrush(Qt::gray));
+QStandardItem* NonogramModel::setupInfoItem(const QString& value, const Nonogram::LineStatus status){
+    Qt::GlobalColor bgColor;
+    switch (status) {
+    case Nonogram::WillSolve: bgColor=Qt::gray;break;
+    case Nonogram::Solving: bgColor=Qt::darkGray;break;
+    case Nonogram::Solved: bgColor=Qt::lightGray;break;
+    default:bgColor=Qt::gray;
+        break;
+    }
+    QStandardItem* item=itemPrototype()->clone();
     item->setEditable(true);
+    item->setTextAlignment(Qt::AlignCenter);
+    item->setBackground(QBrush(bgColor));
     item->setText(value);
     return item;
 }
@@ -112,6 +130,8 @@ void NonogramModel::setNonogram(Nonogram* nonogram){
     _nonogram=nonogram;
     connect(_nonogram, &Nonogram::columnInfoChanged, this, &NonogramModel::refreshColumn);
     connect(_nonogram, &Nonogram::rowInfoChanged, this, &NonogramModel::refreshRow);
+    //connect(_nonogram, &Nonogram::columnStatusChanged, this, &NonogramModel::refreshColumn, Qt::BlockingQueuedConnection);
+    //connect(_nonogram, &Nonogram::rowStatusChanged, this, &NonogramModel::refreshRow, Qt::BlockingQueuedConnection);
     connect(_nonogram, &Nonogram::dataChanged, this, &NonogramModel::refreshData, Qt::BlockingQueuedConnection);
     connect(_nonogram, &Nonogram::rowInserted, this, &NonogramModel::rowInserted);
     connect(_nonogram, &Nonogram::rowRemoved, this, &NonogramModel::rowRemoved);
@@ -124,17 +144,18 @@ void NonogramModel::refreshInfo(){
     if (!_nonogram)
         return;
     int columnCount=_nonogram->width();
-    _maxColumnInfo=0;
-    for(int i=0; i<columnCount; i++)
-        if (_nonogram->columnInfo(i).count()>_maxColumnInfo)
-            _maxColumnInfo=_nonogram->columnInfo(i).count();
-
     int rowCount=_nonogram->height();
+    _maxColumnInfo=0;
     _maxRowInfo=0;
-    for(int i=0; i<rowCount; i++)
-        if (_nonogram->rowInfo(i).count()>_maxRowInfo)
-            _maxRowInfo=_nonogram->rowInfo(i).count();
+    if (_headerVisible){
+        for(int i=0; i<columnCount; i++)
+            if (_nonogram->columnInfo(i).count()>_maxColumnInfo)
+                _maxColumnInfo=_nonogram->columnInfo(i).count();
 
+        for(int i=0; i<rowCount; i++)
+            if (_nonogram->rowInfo(i).count()>_maxRowInfo)
+                _maxRowInfo=_nonogram->rowInfo(i).count();
+    }
     _dataBlockColumn=_maxRowInfo+(_editing?1:0);
     _dataBlockRow=_maxColumnInfo+(_editing?1:0);
 
@@ -155,9 +176,9 @@ void NonogramModel::refreshInfo(){
 
     if (_editing){
         for(int r=0; r<rowCount; r++)
-            setupAddItem(itemAt(r+_dataBlockRow, _maxRowInfo));
+            setItem(r+_dataBlockRow, _maxRowInfo, setupAddItem());
         for(int c=0; c<columnCount; c++)
-            setupAddItem(itemAt(_maxColumnInfo, c+_dataBlockColumn));
+            setItem(_maxColumnInfo, c+_dataBlockColumn, setupAddItem());
     }
     for(int r=0; r<rowCount; r++)
         for(int c=0; c<columnCount; c++)
@@ -179,7 +200,7 @@ void NonogramModel::refreshRowInfoSize(){
         for(int i=0; i<_dataBlockRow; i++)
             newColumn.append(itemPrototype()->clone());
         for(int i=0; i<rowCount; i++)
-            newColumn.append(setupInfoItem(itemPrototype()->clone(), ""));
+            newColumn.append(setupInfoItem(""));
         insertColumn(0, newColumn);
     }
     while(_maxRowInfo>newMaxRowInfo){
@@ -202,7 +223,7 @@ void NonogramModel::refreshColumnInfoSize(){
         for(int i=0; i<_dataBlockColumn; i++)
             newRow.append(itemPrototype()->clone());
         for(int i=0; i<columnCount; i++)
-            newRow.append(setupInfoItem(itemPrototype()->clone(), ""));
+            newRow.append(setupInfoItem(""));
         insertRow(0, newRow);
     }
     while(_maxColumnInfo>newMaxColumnInfo){
@@ -213,6 +234,8 @@ void NonogramModel::refreshColumnInfoSize(){
 }
 
 void NonogramModel::refreshRow(int row){
+    if (!_headerVisible)
+        return;
     refreshRowInfoSize();
 
     InfoListType info=_nonogram->rowInfo(row);
@@ -220,11 +243,13 @@ void NonogramModel::refreshRow(int row){
         QString text;
         if (c<info.count())
             text=QString::number(info[info.count()-1-c]);
-        setupInfoItem(itemAt(row+_dataBlockRow, _maxRowInfo-c-1), text);
+        setItem(row+_dataBlockRow, _maxRowInfo-c-1, setupInfoItem(text, _nonogram->rowStatus(row)));
     }
 }
 
 void NonogramModel::refreshColumn(int column){
+    if (!_headerVisible)
+        return;
     refreshColumnInfoSize();
 
     InfoListType info=_nonogram->columnInfo(column);
@@ -232,12 +257,12 @@ void NonogramModel::refreshColumn(int column){
         QString text;
         if (r<info.count())
             text=QString::number(info[info.count()-r-1]);
-        setupInfoItem(itemAt(_maxColumnInfo-r-1, column+_dataBlockColumn), text);
+        setItem(_maxColumnInfo-r-1, column+_dataBlockColumn, setupInfoItem(text, _nonogram->columnStatus(column)));
     }
 }
 
 void NonogramModel::refreshData(int row, int column){
-    setupDataItem(itemAt(row+_dataBlockRow, column+_dataBlockColumn), _nonogram->data(row, column));
+    setItem(row+_dataBlockRow, column+_dataBlockColumn, setupDataItem(_nonogram->data(row, column)));
 }
 
 void NonogramModel::rowInserted(int row){
@@ -247,12 +272,12 @@ void NonogramModel::rowInserted(int row){
         QString text;
         if (c<info.count())
             text=QString::number(info[info.count()-c-1]);
-        newRow.append(setupInfoItem(itemPrototype()->clone(), text));
+        newRow.append(setupInfoItem(text));
     }
     if (_editing)
-        newRow.append(setupAddItem(itemPrototype()->clone()));
+        newRow.append(setupAddItem());
     for(int c=0; c<_nonogram->width(); c++)
-        newRow.append(setupDataItem(itemPrototype()->clone(), _nonogram->data(row, c)));
+        newRow.append(setupDataItem(_nonogram->data(row, c)));
     insertRow(_dataBlockRow+row, newRow);
     refreshRowInfoSize();
 }
@@ -264,12 +289,12 @@ void NonogramModel::columnInserted(int column){
         QString text;
         if (r<info.count())
             text=QString::number(info[info.count()-r-1]);
-        newColumn.append(setupInfoItem(itemPrototype()->clone(), text));
+        newColumn.append(setupInfoItem(text));
     }
     if (_editing)
-        newColumn.append(setupAddItem(itemPrototype()->clone()));
+        newColumn.append(setupAddItem());
     for(int r=0; r<_nonogram->height(); r++)
-        newColumn.append(setupDataItem(itemPrototype()->clone(), _nonogram->data(r, column)));
+        newColumn.append(setupDataItem(_nonogram->data(r, column)));
     insertColumn(_dataBlockColumn+column, newColumn);
     refreshColumnInfoSize();
 }

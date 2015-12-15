@@ -7,7 +7,8 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 #ifdef QT_DEBUG
-    QTest::qExec(new TestNonogram);
+    TestNonogram test;
+    QTest::qExec(&test);
 #endif
     MainWindow w;
     if (a.arguments().count()>1)

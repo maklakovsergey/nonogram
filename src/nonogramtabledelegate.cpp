@@ -8,6 +8,9 @@ NonogramTableDelegate::NonogramTableDelegate(QObject* parent):QItemDelegate(pare
     _borderVisible=true;
 }
 
+NonogramTableDelegate::~NonogramTableDelegate(){
+}
+
 QWidget *NonogramTableDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &, const QModelIndex &) const{
     NumberLineEdit *editor = new NumberLineEdit(parent);
     return editor;

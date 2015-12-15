@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include <QTableView>
-#include <memory>
+#include <QFutureWatcher>
 #include "nonogram.h"
 #include "nonogrammodel.h"
 
@@ -33,15 +33,22 @@ private slots:
     void editColumnInsertRight();
     void editColumnRemoveCurrent();
     void deleteCell();
+    void refreshEditMenu();
     void solve();
-private:
-    void adjustTableSize();
-    std::shared_ptr<Ui::MainWindow> ui;
-    std::shared_ptr<Nonogram> _nonogram;
+    void solved();
+protected:
+    Ui::MainWindow* ui;
+    Nonogram* _nonogram;
     NonogramModel _nonogramModel;
     float scale;
+    bool _enableEditing;
+    bool _closeAfterSolve;
+    QFutureWatcher<void> _solvingTask;
 
     void setNonogram(Nonogram* nonogram);
+
+    void enableEditing(bool enableEditing);
+    void closeEvent(QCloseEvent *event);
 
 };
 

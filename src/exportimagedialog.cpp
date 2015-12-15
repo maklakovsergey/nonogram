@@ -12,7 +12,7 @@ ExportImageDialog::ExportImageDialog(const Nonogram& nonogram, QWidget *parent) 
 
     _model.setEditing(false);
     _model.setNonogram(&_nonogram);
-    _delegate=new NonogramTableDelegate;
+    _delegate=new NonogramTableDelegate(this);
     _delegate->setCellSize(QSize(24, 24));
     _delegate->setBorderWidth(2);
     _delegate->setBorderColor(Qt::black);
@@ -34,9 +34,9 @@ ExportImageDialog::ExportImageDialog(const Nonogram& nonogram, QWidget *parent) 
     refreshImage();
 }
 
-ExportImageDialog::~ExportImageDialog()
-{
+ExportImageDialog::~ExportImageDialog(){
     delete ui;
+    delete _delegate;
 }
 
 void ExportImageDialog::updateFit(){
@@ -78,6 +78,7 @@ void ExportImageDialog::refreshImage(){
         QPixmap image(rect.width(), rect.height());
         QPainter painter(&image);
         _tableView.render(&painter);
+
         if (_widget)
             ui->graphicsView->scene()->removeItem(_widget);
         _widget=ui->graphicsView->scene()->addPixmap(image);

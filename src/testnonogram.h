@@ -17,7 +17,6 @@ private:
     Nonogram heartNonogram();
     Nonogram carNonogram();
     Nonogram clefNonogram();
-    void fillRandomData(Nonogram& n);
 private slots:
     void saveLoad();
     void solve();

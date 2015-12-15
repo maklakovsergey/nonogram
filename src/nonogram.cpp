@@ -61,7 +61,7 @@ bool Nonogram::isSolveable() const{
     return columnSum==rowSum;
 }
 
-bool canPlaceBlock(Nonogram::CellStatus line[], int lineSize, int offset, int blockSize){
+bool Nonogram::canPlaceBlock(Nonogram::CellStatus line[], int lineSize, int offset, int blockSize){
     for(int i=0; i<blockSize; i++)
         if (line[offset+i]==Nonogram::Free)
             return false;
@@ -73,7 +73,9 @@ bool canPlaceBlock(Nonogram::CellStatus line[], int lineSize, int offset, int bl
     return true;
 }
 
-int placeVariantsCount(int variants[], Nonogram::CellStatus line[], const int lineSize, const InfoListType& info){
+int Nonogram::placeVariantsCount(int variants[], Nonogram::CellStatus line[], const int lineSize, const InfoListType& info){
+    if (isAborted())
+        return 0;
     if (info.count()==0){
         for(int i=0; i<lineSize; i++)
             if (line[i]==Nonogram::Full)
@@ -95,11 +97,11 @@ int placeVariantsCount(int variants[], Nonogram::CellStatus line[], const int li
     return totalVariantCount;
 }
 
-bool solveLine(Nonogram::CellStatus line[], const int lineSize, const InfoListType& info){
+bool Nonogram::solveLine(Nonogram::CellStatus line[], const int lineSize, const InfoListType& info){
     int placeVariants[lineSize];
     memset(placeVariants, 0, sizeof(placeVariants));
     int variantsCount=placeVariantsCount(placeVariants, line, lineSize, info);
-    if (variantsCount==0)
+    if (variantsCount==0 || isAborted())
         return false;
     for(int i=0; i<lineSize; i++){
         if (placeVariants[i]==0){
@@ -118,10 +120,12 @@ bool solveLine(Nonogram::CellStatus line[], const int lineSize, const InfoListTy
 
 bool Nonogram::solveRow(int r, QVector<bool>* needCheckColumn){
     CellStatus row[_width];
+    setRowStatus(r, Solving);
     for(int c=0;c<_width; c++)
         row[c]=data(r,c);
     if (!solveLine(row, _width, _rowInfo[r])){
-        qDebug()<<"error in row"<<r;
+        if (!isAborted())
+            qDebug()<<"error in row"<<r;
         return false;
     }
     else
@@ -130,15 +134,18 @@ bool Nonogram::solveRow(int r, QVector<bool>* needCheckColumn){
                 setData(r,c,row[c]);
                 (*needCheckColumn)[c]=true;
             }
+    setRowStatus(r, Solved);
     return true;
 }
 
 bool Nonogram::solveColumn(int c, QVector<bool>* needCheckRow){
     CellStatus column[_height];
+    setColumnStatus(c, Solving);
     for(int r=0;r<_height; r++)
         column[r]=data(r,c);
     if (!solveLine(column, _height, _columnInfo[c])){
-        qDebug()<<"error in column"<<c;
+        if (!isAborted())
+            qDebug()<<"error in column"<<c;
         return false;
     }
     else
@@ -147,6 +154,7 @@ bool Nonogram::solveColumn(int c, QVector<bool>* needCheckRow){
                 setData(r,c,column[r]);
                 (*needCheckRow)[r]=true;
             }
+    setColumnStatus(c, Solved);
     return true;
 }
 
@@ -164,6 +172,7 @@ void Nonogram::solveBranch(){
 
     Nonogram branch(*this);
     branch.setData(row, column, Full);
+    connect(this, &Nonogram::aborted, &branch, &Nonogram::abort);
     qDebug()<<"creating branch";
     if (branch.solve()){
         qDebug()<<"branch solved";
@@ -230,6 +239,7 @@ QVector<bool> Nonogram::columnsForInitialCheck(){
 bool Nonogram::solve(){
     if (!isSolveable())
         return false;
+    _aborted=false;
     bool error=false;
     QVector<bool> needCheckRow=rowsForInitialCheck();
     QVector<bool> needCheckColumn=columnsForInitialCheck();
@@ -237,11 +247,18 @@ bool Nonogram::solve(){
 
     int unsolvedCount=_dataGrid.count(Nonogram::Unknown);
     qDebug()<<"unsolved"<<unsolvedCount;
-
-    while (unsolvedCount>0 && !error){
+    _rowStatus.fill(Normal, _height);
+    _columnStatus.fill(Normal, _width);
+    QTime solveTime;
+    solveTime.start();
+    while (unsolvedCount>0 && !error && !isAborted()){
         for(int r=0; r<_height&& !error; r++)
-            if (needCheckRow[r])
+            if (needCheckRow[r]){
+                setRowStatus(r, WillSolve);
                 operations.append(QtConcurrent::run(this, &Nonogram::solveRow, r, &needCheckColumn));
+            }
+            else
+                setRowStatus(r, Normal);
 
         for(auto future:operations){
             future.waitForFinished();
@@ -252,8 +269,12 @@ bool Nonogram::solve(){
         needCheckRow.fill(false);
 
         for(int c=0; c<_width && !error; c++)
-            if (needCheckColumn[c])
+            if (needCheckColumn[c]){
+                setColumnStatus(c, WillSolve);
                 operations.append(QtConcurrent::run(this, &Nonogram::solveColumn, c, &needCheckRow));
+            }
+            else
+                setColumnStatus(c, Normal);
 
         for(auto future:operations){
             future.waitForFinished();
@@ -264,16 +285,33 @@ bool Nonogram::solve(){
         needCheckColumn.fill(false);
 
         int newUnsolvedCount=_dataGrid.count(Nonogram::Unknown);
-        if (newUnsolvedCount==unsolvedCount && !error){
+        if (newUnsolvedCount==unsolvedCount && !error && !isAborted()){
             solveBranch();
             newUnsolvedCount=_dataGrid.count(Nonogram::Unknown);
         }
         unsolvedCount=newUnsolvedCount;
-        qDebug()<<"unsolved"<<unsolvedCount;
+        qDebug()<<"unsolved"<<unsolvedCount<<solveTime.elapsed()<<"ms";
     }
+    _rowStatus.clear();
+    _columnStatus.clear();
     saveImage();
     qDebug("end solve");
     return !error;
+}
+
+bool Nonogram::isAborted(){
+    bool aborted;
+    _abortedLock.lockForRead();
+    aborted=_aborted;
+    _abortedLock.unlock();
+    return aborted;
+}
+
+void Nonogram::abort(){
+    _abortedLock.lockForWrite();
+    _aborted=true;
+    _abortedLock.unlock();
+    emit aborted();
 }
 
 void Nonogram::saveImage(){
@@ -309,6 +347,16 @@ void Nonogram::setRowInfo(int row, const InfoListType& newInfo) {
     info.clear();
     info.append(newInfo);
     emit rowInfoChanged(row);
+}
+
+void Nonogram::setRowStatus(int row, LineStatus status){
+    _rowStatus[row]=status;
+    emit rowStatusChanged(row);
+}
+
+void Nonogram::setColumnStatus(int column, LineStatus status){
+    _columnStatus[column]=status;
+    emit columnStatusChanged(column);
 }
 
 void Nonogram::insertRow(int position){

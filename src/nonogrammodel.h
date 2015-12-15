@@ -5,7 +5,6 @@
 #include <QAbstractTableModel>
 #include <QStandardItemModel>
 #include "nonogram.h"
-#include <memory>
 
 class NonogramModel : public QStandardItemModel
 {
@@ -34,6 +33,8 @@ private slots:
     void columnInserted(int column);
     void rowRemoved(int row);
     void columnRemoved(int column);
+
+    void onItemChanged(QStandardItem * item);
 private:
     bool _editing;
     bool _headerVisible;
@@ -43,10 +44,9 @@ private:
     int _dataBlockColumn;
     int _dataBlockRow;
 
-    QStandardItem* itemAt(int row, int column);
-    QStandardItem* setupInfoItem(QStandardItem* item, const QString& value);
-    QStandardItem* setupDataItem(QStandardItem* item, Nonogram::CellStatus status);
-    QStandardItem* setupAddItem(QStandardItem *item);
+    QStandardItem* setupInfoItem(const QString& value, const Nonogram::LineStatus status=Nonogram::Normal);
+    QStandardItem* setupDataItem(Nonogram::CellStatus status);
+    QStandardItem* setupAddItem();
     void refreshRowInfoSize();
     void refreshColumnInfoSize();
 };
