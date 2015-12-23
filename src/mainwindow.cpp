@@ -33,7 +33,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->tableView->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::refreshEditMenu);
 
     QShortcut* shortcut = new QShortcut(QKeySequence(QKeySequence::Delete), ui->tableView);
-    connect(shortcut, &QShortcut::activated, this, MainWindow::deleteCell);
+    connect(shortcut, &QShortcut::activated, this, &MainWindow::deleteCell);
 
     connect(&_solvingTask, &QFutureWatcher<void>::finished, this, &MainWindow::solved);
     _closeAfterSolve=false;
@@ -207,16 +207,19 @@ void MainWindow::solved(){
 }
 
 void MainWindow::refreshEditMenu(){
-    bool isDataCell=false;
+	bool canEditRow = false;
+	bool canEditColumn = false;
     QModelIndex index=ui->tableView->selectionModel()->currentIndex();
-    if (index.isValid())
-        isDataCell=index.row()>=_nonogramModel.dataBlockRow() && index.column()>=_nonogramModel.dataBlockColumn();
-    ui->action_column_insert_left->   setEnabled(_enableEditing && isDataCell);
-    ui->action_column_insert_right->  setEnabled(_enableEditing && isDataCell);
-    ui->action_column_remove_current->setEnabled(_enableEditing && isDataCell);
-    ui->action_row_insert_above->     setEnabled(_enableEditing && isDataCell);
-    ui->action_row_insert_below->     setEnabled(_enableEditing && isDataCell);
-    ui->action_row_remove_current->   setEnabled(_enableEditing && isDataCell);
+	if (index.isValid()) {
+		canEditRow = index.row() >= _nonogramModel.dataBlockRow();
+		canEditColumn = index.column() >= _nonogramModel.dataBlockColumn();
+	}
+    ui->action_column_insert_left->   setEnabled(_enableEditing && canEditColumn);
+    ui->action_column_insert_right->  setEnabled(_enableEditing && canEditColumn);
+    ui->action_column_remove_current->setEnabled(_enableEditing && canEditColumn);
+    ui->action_row_insert_above->     setEnabled(_enableEditing && canEditRow);
+    ui->action_row_insert_below->     setEnabled(_enableEditing && canEditRow);
+    ui->action_row_remove_current->   setEnabled(_enableEditing && canEditRow);
 }
 
 void MainWindow::setNonogram(Nonogram* nonogram){

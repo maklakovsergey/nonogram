@@ -98,32 +98,34 @@ int Nonogram::placeVariantsCount(int variants[], Nonogram::CellStatus line[], co
 }
 
 bool Nonogram::solveLine(Nonogram::CellStatus line[], const int lineSize, const InfoListType& info){
-    int placeVariants[lineSize];
-    memset(placeVariants, 0, sizeof(placeVariants));
-    int variantsCount=placeVariantsCount(placeVariants, line, lineSize, info);
-    if (variantsCount==0 || isAborted())
-        return false;
+    QVector<int> placeVariants(lineSize);
+    memset(placeVariants.data(), 0, sizeof(int)*lineSize);
+    int variantsCount=placeVariantsCount(placeVariants.data(), line, lineSize, info);
+	if (variantsCount==0 || isAborted())
+		return false;
     for(int i=0; i<lineSize; i++){
         if (placeVariants[i]==0){
             if (line[i]==Nonogram::Full)
-                return false;
-            line[i]=Nonogram::Free;
+				return false;
+			else
+				line[i]=Nonogram::Free;
         }
-        if (placeVariants[i]==variantsCount){
+        else if (placeVariants[i]==variantsCount){
             if (line[i]==Nonogram::Free)
-                return false;
-            line[i]=Nonogram::Full;
+				return false;
+			else
+				line[i]=Nonogram::Full;
         }
     }
     return true;
 }
 
 bool Nonogram::solveRow(int r, QVector<bool>* needCheckColumn){
-    CellStatus row[_width];
+    QVector<CellStatus> row(_width);
     setRowStatus(r, Solving);
     for(int c=0;c<_width; c++)
         row[c]=data(r,c);
-    if (!solveLine(row, _width, _rowInfo[r])){
+    if (!solveLine(row.data(), _width, _rowInfo[r])){
         if (!isAborted())
             qDebug()<<"error in row"<<r;
         return false;
@@ -139,11 +141,11 @@ bool Nonogram::solveRow(int r, QVector<bool>* needCheckColumn){
 }
 
 bool Nonogram::solveColumn(int c, QVector<bool>* needCheckRow){
-    CellStatus column[_height];
+	QVector<CellStatus> column(_height);
     setColumnStatus(c, Solving);
     for(int r=0;r<_height; r++)
         column[r]=data(r,c);
-    if (!solveLine(column, _height, _columnInfo[c])){
+    if (!solveLine(column.data(), _height, _columnInfo[c])){
         if (!isAborted())
             qDebug()<<"error in column"<<c;
         return false;
@@ -155,7 +157,7 @@ bool Nonogram::solveColumn(int c, QVector<bool>* needCheckRow){
                 (*needCheckRow)[r]=true;
             }
     setColumnStatus(c, Solved);
-    return true;
+	return true;
 }
 
 void Nonogram::solveBranch(){
@@ -364,8 +366,8 @@ void Nonogram::insertRow(int position){
         qDebug()<<"cannot insert row at"<<position<<"current height"<<_height;
         return;
     }
-    CellStatus dataGrid[_width*_height];
-    memcpy(dataGrid, _dataGrid.data(), _width*_height*sizeof(CellStatus));
+	QVector<CellStatus> dataGrid(_width*_height);
+    memcpy(dataGrid.data(), _dataGrid.data(), _width*_height*sizeof(CellStatus));
 
     int newHeight=_height+1;
     _dataGrid.resize(_width*newHeight);
@@ -388,8 +390,8 @@ void Nonogram::insertColumn(int position){
         qDebug()<<"cannot insert column at"<<position<<"current width"<<_width;
         return;
     }
-    CellStatus dataGrid[_width*_height];
-    memcpy(dataGrid, _dataGrid.data(), _width*_height*sizeof(CellStatus));
+	QVector<CellStatus> dataGrid(_width*_height);
+	memcpy(dataGrid.data(), _dataGrid.data(), _width*_height*sizeof(CellStatus));
 
     int newWidth=_width+1;
     _dataGrid.resize(newWidth*_height);
@@ -412,8 +414,8 @@ void Nonogram::removeRow(int position){
         qDebug()<<"cannot insert row at"<<position<<"current height"<<_height;
         return;
     }
-    CellStatus dataGrid[_width*_height];
-    memcpy(dataGrid, _dataGrid.data(), _width*_height*sizeof(CellStatus));
+	QVector<CellStatus> dataGrid(_width*_height);
+	memcpy(dataGrid.data(), _dataGrid.data(), _width*_height*sizeof(CellStatus));
 
     int newHeight=_height-1;
     _dataGrid.resize(_width*newHeight);
@@ -434,10 +436,10 @@ void Nonogram::removeColumn(int position){
         qDebug()<<"cannot insert column at"<<position<<"current width"<<_width;
         return;
     }
-    CellStatus dataGrid[_width*_height];
-    memcpy(dataGrid, _dataGrid.data(), _width*_height*sizeof(CellStatus));
 
-    int newWidth=_width-1;
+	QVector<CellStatus> dataGrid(_width*_height);
+	memcpy(dataGrid.data(), _dataGrid.data(), _width*_height*sizeof(CellStatus));
+	int newWidth=_width-1;
     _dataGrid.resize(newWidth*_height);
     for(int c=0; c<position; c++)
         for(int r=0; r<_height; r++)

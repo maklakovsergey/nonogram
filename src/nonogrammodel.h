@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QAbstractTableModel>
 #include <QStandardItemModel>
+#include <qvector.h>
 #include "nonogram.h"
 
 class NonogramModel : public QStandardItemModel
@@ -14,6 +15,7 @@ public:
     ~NonogramModel();
     void setNonogram(Nonogram* nonogram);
     bool setData(const QModelIndex &index, const QVariant &value, int role);
+	Qt::ItemFlags flags(const QModelIndex & index) const;
 
     inline int dataBlockRow()const {return _dataBlockRow;}
     inline int dataBlockColumn()const {return _dataBlockColumn;}
@@ -44,11 +46,14 @@ private:
     int _dataBlockColumn;
     int _dataBlockRow;
 
-    QStandardItem* setupInfoItem(const QString& value, const Nonogram::LineStatus status=Nonogram::Normal);
-    QStandardItem* setupDataItem(Nonogram::CellStatus status);
-    QStandardItem* setupAddItem();
+    QStandardItem* setupInfoItem(const QModelIndex& index, const QString& value, const Nonogram::LineStatus status=Nonogram::Normal);
+    QStandardItem* setupDataItem(const QModelIndex& index, Nonogram::CellStatus status);
+    QStandardItem* setupAddItem(const QModelIndex& index);
     void refreshRowInfoSize();
     void refreshColumnInfoSize();
+
+	QVector<int> redrawCount;
+	void printRedrawCount() const;
 };
 
 #endif // NONOGRAMMODEL_H
