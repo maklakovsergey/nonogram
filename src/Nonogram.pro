@@ -14,26 +14,29 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = Nonogram
 TEMPLATE = app
 
-SOURCES += main.cpp\
-        mainwindow.cpp \
+SOURCES += \
+    main.cpp\
     nonogrammodel.cpp \
-    nonogramtabledelegate.cpp \
     nonogram.cpp \
-    numberlineedit.cpp \
-    testnonogram.cpp \
-    exportimagedialog.cpp
+    test/testnonogram.cpp \
+    UI/exportimagedialog.cpp \
+    UI/mainwindow.cpp \
+    UI/nonogramtabledelegate.cpp \
+    UI/numberlineedit.cpp
 
-HEADERS  += mainwindow.h \
+HEADERS  += \
     nonogrammodel.h \
-    nonogramtabledelegate.h \
     nonogram.h \
-    numberlineedit.h \
-    testnonogram.h \
-    exportimagedialog.h
+    test/testnonogram.h \
+    UI/exportimagedialog.h \
+    UI/mainwindow.h \
+    UI/nonogramtabledelegate.h \
+    UI/numberlineedit.h
 
-FORMS    += mainwindow.ui \
-    newfiledialog.ui \
-    exportimagedialog.ui
+FORMS    += \
+    UI/exportimagedialog.ui \
+    UI/mainwindow.ui \
+    UI/newfiledialog.ui
 
 DISTFILES += \
     translations.ts

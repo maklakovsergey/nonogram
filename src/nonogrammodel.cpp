@@ -121,7 +121,7 @@ bool NonogramModel::setData(const QModelIndex &index, const QVariant &value, int
             isInt=false;
         if (row>=0&&column<0){
             //edit row info block
-            InfoListType info(_nonogram->rowInfo(row));
+            LineInfoType info(_nonogram->rowInfo(row));
             int listIndex=info.count()+column+(_editing?1:0);
             if (listIndex<0){
                 if (isInt)
@@ -141,7 +141,7 @@ bool NonogramModel::setData(const QModelIndex &index, const QVariant &value, int
         }
         else if (column>=0&&row<0){
             //edit column info block
-            InfoListType info(_nonogram->columnInfo(column));
+            LineInfoType info(_nonogram->columnInfo(column));
             int listIndex=info.count()+row+(_editing?1:0);
             if (listIndex<0){
                 if (isInt)
@@ -283,7 +283,7 @@ void NonogramModel::refreshRow(int row){
         return;
     refreshRowInfoSize();
 
-    InfoListType info=_nonogram->rowInfo(row);
+    LineInfoType info=_nonogram->rowInfo(row);
     for(int c=0; c<_maxRowInfo; c++){
         QString text;
         if (c<info.count())
@@ -297,7 +297,7 @@ void NonogramModel::refreshColumn(int column){
         return;
     refreshColumnInfoSize();
 
-    InfoListType info=_nonogram->columnInfo(column);
+    LineInfoType info=_nonogram->columnInfo(column);
     for(int r=0; r<_maxColumnInfo; r++){
         QString text;
         if (r<info.count())
@@ -312,7 +312,7 @@ void NonogramModel::refreshData(int row, int column){
 
 void NonogramModel::rowInserted(int row){
     QList<QStandardItem*> newRow;
-    InfoListType info=_nonogram->rowInfo(row);
+    LineInfoType info=_nonogram->rowInfo(row);
     for(int c=0; c<_maxRowInfo; c++){
         QString text;
         if (c<info.count())
@@ -329,7 +329,7 @@ void NonogramModel::rowInserted(int row){
 
 void NonogramModel::columnInserted(int column){
     QList<QStandardItem*> newColumn;
-    InfoListType info=_nonogram->columnInfo(column);
+    LineInfoType info=_nonogram->columnInfo(column);
     for(int r=0; r<_maxColumnInfo; r++){
         QString text;
         if (r<info.count())

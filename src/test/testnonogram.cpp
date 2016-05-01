@@ -10,7 +10,7 @@ TestNonogram::TestNonogram(QObject *parent) : QObject(parent){
 Nonogram TestNonogram::heartNonogram(){
     //https://upload.wikimedia.org/wikipedia/ru/a/ad/Step4.png
     Nonogram n(9,9);
-    InfoListType columns[9]= {
+    LineInfoType columns[9]= {
         {4},
         {6},
         {7},
@@ -23,7 +23,7 @@ Nonogram TestNonogram::heartNonogram(){
     };
     for(int i=0; i<9; i++)
         n.setColumnInfo(i, columns[i]);
-    InfoListType rows[9]= {
+    LineInfoType rows[9]= {
         {2,2},
         {4,4},
         {9},
@@ -42,7 +42,7 @@ Nonogram TestNonogram::heartNonogram(){
 Nonogram TestNonogram::carNonogram(){
     //http://www.nonograms.ru/files/nonograms/large/dzhip_12_1_1p.png
     Nonogram n(25,20);
-    InfoListType columns[25]= {
+    LineInfoType columns[25]= {
         {3},
         {5,4},
         {2,1,6},
@@ -76,7 +76,7 @@ Nonogram TestNonogram::carNonogram(){
     for(int i=0; i<25; i++)
         n.setColumnInfo(i, columns[i]);
 
-    InfoListType rows[20]={
+    LineInfoType rows[20]={
         {9},
         {11},
         {1,1,2,2},
@@ -109,7 +109,7 @@ Nonogram TestNonogram::carNonogram(){
 Nonogram TestNonogram::clefNonogram(){
     //http://en.japonskie.ru/crossword/skripichniy_klyuch1
     Nonogram n(9,20);
-    InfoListType columns[9]= {
+    LineInfoType columns[9]= {
         {5},
         {7},
         {2,2},
@@ -124,7 +124,7 @@ Nonogram TestNonogram::clefNonogram(){
     for(int i=0; i<9; i++)
         n.setColumnInfo(i, columns[i]);
 
-    InfoListType rows[20]={
+    LineInfoType rows[20]={
         {1},
         {2},
         {3},
