@@ -2,11 +2,11 @@
 #include <QBrush>
 #include <QDebug>
 
-enum CellType {
-	CellTypeEmpty,
-	CellTypeAdd,
-	CellTypeInfo,
-	CellTypeData
+enum class CellType {
+    Empty,
+    Add,
+    Info,
+    Data
 };
 
 const int CellTypeRole=Qt::UserRole+1;
@@ -20,7 +20,7 @@ NonogramModel::NonogramModel(QObject *parent) : QStandardItemModel(parent)
     emptyItemPrototype->setFlags(Qt::ItemIsEnabled);
     emptyItemPrototype->setTextAlignment(Qt::AlignCenter);
     emptyItemPrototype->setBackground(QBrush(Qt::white));
-	emptyItemPrototype->setData(CellTypeEmpty, CellTypeRole);
+    emptyItemPrototype->setData(static_cast<int>(CellType::Empty), CellTypeRole);
     setItemPrototype(emptyItemPrototype);
 
     //connect(this, &NonogramModel::itemChanged, this, &NonogramModel::onItemChanged);
@@ -48,59 +48,46 @@ void NonogramModel::onItemChanged(QStandardItem * item){
 }
 
 QStandardItem*  NonogramModel::setupAddItem(const QModelIndex& index){
-	QStandardItem* item = itemFromIndex(index);
-	if (!item || item->data(CellTypeRole).toInt()!=CellTypeAdd) {
-		item = itemPrototype()->clone();
-		item->setEditable(true);
-		item->setTextAlignment(Qt::AlignCenter);
-		item->setBackground(QBrush(Qt::lightGray));
-		item->setText("+");
-		item->setData(CellTypeAdd, CellTypeRole);
-		setItem(index.row(), index.column(), item);
-	}
+    QStandardItem* item = itemPrototype()->clone();
+    item->setEditable(true);
+    item->setTextAlignment(Qt::AlignCenter);
+    item->setBackground(QBrush(Qt::lightGray));
+    item->setText("+");
+    item->setData(static_cast<int>(CellType::Add), CellTypeRole);
+    setItem(index.row(), index.column(), item);
     return item;
 }
 
-QStandardItem*  NonogramModel::setupDataItem(const QModelIndex& index, Nonogram::CellStatus status){
+QStandardItem*  NonogramModel::setupDataItem(const QModelIndex& index, CellStatus status){
 	QBrush background;
 	switch (status) {
-	case Nonogram::Full:    background=Qt::darkGray; break;
-	case Nonogram::Free:    background=Qt::white; break;
-	case Nonogram::Unknown: background=Qt::lightGray; break;
+    case CellStatus::Full:    background=Qt::darkGray; break;
+    case CellStatus::Free:    background=Qt::white; break;
+    case CellStatus::Unknown: background=Qt::lightGray; break;
 	default: break;
 	}
-	QStandardItem* item = itemFromIndex(index);
-	if (!item || item->data(CellTypeRole).toInt() != CellTypeData) {
-		item = itemPrototype()->clone();
-		item->setData(CellTypeInfo, CellTypeData);
-		item->setBackground(background);
-		setItem(index.row(), index.column(), item);
-	}
-	else
-		setItemData(index, { { Qt::BackgroundRole, background } });
+    QStandardItem* item =  itemPrototype()->clone();
+    item->setData(static_cast<int>(CellType::Data), CellTypeRole);
+    item->setBackground(background);
+    setItem(index.row(), index.column(), item);
     return item;
 }
 
-QStandardItem* NonogramModel::setupInfoItem(const QModelIndex& index, const QString& value, const Nonogram::LineStatus status){
+QStandardItem* NonogramModel::setupInfoItem(const QModelIndex& index, const QString& value, const LineStatus status){
 	QBrush background;
     switch (status) {
-    case Nonogram::WillSolve: background=Qt::gray;break;
-    case Nonogram::Solving: background=Qt::darkGray;break;
-    case Nonogram::Solved: background=Qt::lightGray;break;
+    case LineStatus::WillSolve: background=Qt::gray;break;
+    case LineStatus::Solving: background=Qt::darkGray;break;
+    case LineStatus::Solved: background=Qt::lightGray;break;
     default:background=Qt::gray; break;
     }
-	QStandardItem* item = itemFromIndex(index);
-	if (!item || item->data(CellTypeRole).toInt() != CellTypeInfo) {
-		item = itemPrototype()->clone();
-		item->setTextAlignment(Qt::AlignCenter);
-		item->setData(CellTypeInfo, CellTypeRole);
-		item->setBackground(background);
-		item->setText(value);
-		item->setEditable(true);
-		setItem(index.row(), index.column(), item);
-	}
-	else 
-		setItemData(index, { {Qt::BackgroundRole, background}, {Qt::DisplayRole, value} });
+    QStandardItem* item = itemPrototype()->clone();
+    item->setTextAlignment(Qt::AlignCenter);
+    item->setData(static_cast<int>(CellType::Info), CellTypeRole);
+    item->setBackground(background);
+    item->setText(value);
+    item->setEditable(true);
+    setItem(index.row(), index.column(), item);
 	return item;
 }
 
@@ -170,9 +157,9 @@ void NonogramModel::setNonogram(Nonogram* nonogram) {
 	if (_nonogram) {
 		connect(_nonogram, &Nonogram::columnInfoChanged, this, &NonogramModel::refreshColumn);
 		connect(_nonogram, &Nonogram::rowInfoChanged, this, &NonogramModel::refreshRow);
-		//connect(_nonogram, &Nonogram::columnStatusChanged, this, &NonogramModel::refreshColumn, Qt::BlockingQueuedConnection);
-		//connect(_nonogram, &Nonogram::rowStatusChanged, this, &NonogramModel::refreshRow, Qt::BlockingQueuedConnection);
-		connect(_nonogram, &Nonogram::dataChanged, this, &NonogramModel::refreshData/*, Qt::BlockingQueuedConnection*/);
+        //connect(_nonogram, &Nonogram::columnStatusChanged, this, &NonogramModel::refreshColumn);
+        //connect(_nonogram, &Nonogram::rowStatusChanged, this, &NonogramModel::refreshRow);
+        connect(_nonogram, &Nonogram::dataChanged, this, &NonogramModel::refreshData);
 		connect(_nonogram, &Nonogram::rowInserted, this, &NonogramModel::rowInserted);
 		connect(_nonogram, &Nonogram::rowRemoved, this, &NonogramModel::rowRemoved);
 		connect(_nonogram, &Nonogram::columnInserted, this, &NonogramModel::columnInserted);

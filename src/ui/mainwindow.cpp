@@ -59,7 +59,7 @@ void MainWindow::closeEvent(QCloseEvent *event){
     if (_solvingTask.isRunning()){
         qDebug()<<"abort";
         _closeAfterSolve=true;
-        _nonogram->abort();
+        _solver.abort();
         event->ignore();
     }
     else
@@ -197,7 +197,7 @@ void MainWindow::solve(){
     }
     else{
         enableEditing(false);
-        _solvingTask.setFuture(QtConcurrent::run(_nonogram, &Nonogram::solve));
+        _solvingTask.setFuture(QtConcurrent::run(&_solver, &NonogramSolver::solve, _nonogram));
     }
 }
 

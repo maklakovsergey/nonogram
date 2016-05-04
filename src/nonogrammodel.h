@@ -46,8 +46,8 @@ private:
     int _dataBlockColumn;
     int _dataBlockRow;
 
-    QStandardItem* setupInfoItem(const QModelIndex& index, const QString& value, const Nonogram::LineStatus status=Nonogram::Normal);
-    QStandardItem* setupDataItem(const QModelIndex& index, Nonogram::CellStatus status);
+    QStandardItem* setupInfoItem(const QModelIndex& index, const QString& value, const LineStatus status=LineStatus::Normal);
+    QStandardItem* setupDataItem(const QModelIndex& index, CellStatus status);
     QStandardItem* setupAddItem(const QModelIndex& index);
     void refreshRowInfoSize();
     void refreshColumnInfoSize();

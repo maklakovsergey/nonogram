@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <QImage>
 #include <QColor>
-#include <QtConcurrent>
 
 Nonogram::Nonogram(QObject *parent) : QObject(parent){
     _width=0;
@@ -28,9 +27,11 @@ Nonogram::~Nonogram(){
 void Nonogram::init(int width, int height){
     _width=width;
     _height=height;
-    _dataGrid=QVector<CellStatus>(_width*_height, Unknown);
+    _dataGrid=QVector<CellStatus>(_width*_height, CellStatus::Unknown);
     _columnInfo=QVector<LineInfoType>(_width);
     _rowInfo=QVector<LineInfoType>(_height);
+    _columnStatus.fill(LineStatus::Normal, _width);
+    _rowStatus.fill(LineStatus::Normal, _height);
 }
 
 bool Nonogram::isValid() const{
@@ -61,275 +62,20 @@ bool Nonogram::isSolveable() const{
     return columnSum==rowSum;
 }
 
-bool Nonogram::canPlaceBlock(Nonogram::CellStatus line[], int lineSize, int offset, int blockSize){
-    for(int i=0; i<blockSize; i++)
-        if (line[offset+i]==Nonogram::Free)
-            return false;
-    for(int i=0; i<offset; i++)
-        if (line[i]==Nonogram::Full)
-            return false;
-    if (offset+blockSize<lineSize && line[offset+blockSize]==Nonogram::Full)
-        return false;
-    return true;
-}
-
-int Nonogram::placeVariantsCount(int variants[], Nonogram::CellStatus line[], const int lineSize, const LineInfoType& info){
-    if (isAborted())
-        return 0;
-    if (info.count()==0){
-        for(int i=0; i<lineSize; i++)
-            if (line[i]==Nonogram::Full)
-                return 0;
-        return 1;
-    }
-    int blockSize=info[0];
-    int totalVariantCount=0;
-    for(int i=0; i<=lineSize-blockSize; i++)
-        if (canPlaceBlock(line, lineSize, i, blockSize)){
-            int endPos=i+blockSize+1;
-            int variantCount=placeVariantsCount(variants+endPos, line+endPos, lineSize-endPos, info.mid(1));
-            if (variantCount>0){
-                totalVariantCount+=variantCount;
-                for(int j=0; j<blockSize; j++)
-                    variants[i+j]+=variantCount;
-            }
-        }
-    return totalVariantCount;
-}
-
-bool Nonogram::solveLine(Nonogram::CellStatus line[], const int lineSize, const LineInfoType& info){
-    QVector<int> placeVariants(lineSize);
-    memset(placeVariants.data(), 0, sizeof(int)*lineSize);
-    int variantsCount=placeVariantsCount(placeVariants.data(), line, lineSize, info);
-    if (variantsCount==0 || isAborted())
-        return false;
-    for(int i=0; i<lineSize; i++){
-        if (placeVariants[i]==0){
-            if (line[i]==Nonogram::Full)
-                return false;
-            else
-                line[i]=Nonogram::Free;
-        }
-        else if (placeVariants[i]==variantsCount){
-            if (line[i]==Nonogram::Free)
-                return false;
-            else
-                line[i]=Nonogram::Full;
-        }
-    }
-    return true;
-}
-
-bool Nonogram::solveRow(int r, QVector<bool>* needCheckColumn){
-    QVector<CellStatus> row(_width);
-    setRowStatus(r, Solving);
-    for(int c=0;c<_width; c++)
-        row[c]=data(r,c);
-    if (!solveLine(row.data(), _width, _rowInfo[r])){
-        if (!isAborted())
-            qDebug()<<"error in row"<<r;
-        return false;
-    }
-    else
-        for(int c=0; c<_width; c++)
-            if (row[c]!=Unknown && data(r,c)==Unknown){
-                setData(r,c,row[c]);
-                (*needCheckColumn)[c]=true;
-            }
-    setRowStatus(r, Solved);
-    return true;
-}
-
-bool Nonogram::solveColumn(int c, QVector<bool>* needCheckRow){
-    QVector<CellStatus> column(_height);
-    setColumnStatus(c, Solving);
-    for(int r=0;r<_height; r++)
-        column[r]=data(r,c);
-    if (!solveLine(column.data(), _height, _columnInfo[c])){
-        if (!isAborted())
-            qDebug()<<"error in column"<<c;
-        return false;
-    }
-    else
-        for(int r=0;r<_height; r++)
-            if (column[r]!=Unknown && data(r,c)==Unknown){
-                setData(r,c,column[r]);
-                (*needCheckRow)[r]=true;
-            }
-    setColumnStatus(c, Solved);
-    return true;
-}
-
-void Nonogram::solveBranch(){
-    //saveImage();
-    int row=0, column=0;
-    for(int r=0;r<_height; r++)
-        for(int c=0;c<_width; c++)
-            if (data(r, c)==Unknown){
-                row=r;
-                column=c;
-                c=_width;
-                r=_height;
-            }
-
-    Nonogram branch(*this);
-    branch.setData(row, column, Full);
-    connect(this, &Nonogram::aborted, &branch, &Nonogram::abort);
-    qDebug()<<"creating branch";
-    if (branch.solve()){
-        qDebug()<<"branch solved";
-        for(int r=0;r<_height; r++)
-            for(int c=0;c<_width; c++)
-                setData(r, c, branch.data(r, c));
-    }
-    else{
-        qDebug()<<"closing branch";
-        setData(row, column, Free);
-    }
-}
-
-QVector<bool> Nonogram::rowsForInitialCheck(){
-    QVector<bool> needCheckRow;
-    needCheckRow.fill(true, _height);
-    for(int r=0;r<_height; r++){
-        bool needCheck=false;
-        for(int c=0;c<_width; c++)
-            if (data(r,c)!=Unknown){
-                needCheck=true;
-                break;
-            }
-        if (!needCheck){
-            int sum=0,max=0;
-            for(int value:_rowInfo[r]){
-                sum+=value+1;
-                if (value>max)
-                    max=value;
-            }
-            if (_width-(sum-1)<max)
-                needCheck=true;
-        }
-        needCheckRow[r]=needCheck;
-    }
-    return needCheckRow;
-}
-
-QVector<bool> Nonogram::columnsForInitialCheck(){
-    QVector<bool> needCheckColumn;
-    needCheckColumn.fill(true, _width);
-    for(int c=0;c<_width; c++){
-        bool needCheck=false;
-        for(int r=0;r<_height; r++)
-            if (data(r,c)!=Unknown){
-                needCheck=true;
-                break;
-            }
-        if (!needCheck){
-            int sum=0,max=0;
-            for(int value:_columnInfo[c]){
-                sum+=value+1;
-                if (value>max)
-                    max=value;
-            }
-            if (_height-(sum-1)<max)
-                needCheck=true;
-        }
-        needCheckColumn[c]=needCheck;
-    }
-    return needCheckColumn;
-}
-
-bool Nonogram::solve(){
-    if (!isSolveable())
-        return false;
-    _aborted=false;
-    bool error=false;
-    QVector<bool> needCheckRow=rowsForInitialCheck();
-    QVector<bool> needCheckColumn=columnsForInitialCheck();
-    QList<QFuture<bool>> operations;
-
-    int unsolvedCount=_dataGrid.count(Nonogram::Unknown);
-    qDebug()<<"unsolved"<<unsolvedCount<<"cells";
-    _rowStatus.fill(Normal, _height);
-    _columnStatus.fill(Normal, _width);
-    QTime solveTime;
-    solveTime.start();
-    while (unsolvedCount>0 && !error && !isAborted()){
-        for(int r=0; r<_height&& !error; r++)
-            if (needCheckRow[r]){
-                setRowStatus(r, WillSolve);
-                operations.append(QtConcurrent::run(this, &Nonogram::solveRow, r, &needCheckColumn));
-            }
-            else
-                setRowStatus(r, Normal);
-
-        for(auto future:operations){
-            future.waitForFinished();
-            if (!future.result())
-                error=true;
-        }
-        operations.clear();
-        needCheckRow.fill(false);
-
-        for(int c=0; c<_width && !error; c++)
-            if (needCheckColumn[c]){
-                setColumnStatus(c, WillSolve);
-                operations.append(QtConcurrent::run(this, &Nonogram::solveColumn, c, &needCheckRow));
-            }
-            else
-                setColumnStatus(c, Normal);
-
-        for(auto future:operations){
-            future.waitForFinished();
-            if (!future.result())
-                error=true;
-        }
-        operations.clear();
-        needCheckColumn.fill(false);
-
-        int newUnsolvedCount=_dataGrid.count(Nonogram::Unknown);
-        if (newUnsolvedCount==unsolvedCount && !error && !isAborted()){
-            solveBranch();
-            newUnsolvedCount=_dataGrid.count(Nonogram::Unknown);
-        }
-        unsolvedCount=newUnsolvedCount;
-        qDebug()<<"unsolved"<<unsolvedCount<<"cells in"<<solveTime.elapsed()<<"ms";
-    }
-    _rowStatus.clear();
-    _columnStatus.clear();
-    //saveImage();
-    qDebug("end solve");
-    return !error;
-}
-
-bool Nonogram::isAborted(){
-    bool aborted;
-    _abortedLock.lockForRead();
-    aborted=_aborted;
-    _abortedLock.unlock();
-    return aborted;
-}
-
-void Nonogram::abort(){
-    _abortedLock.lockForWrite();
-    _aborted=true;
-    _abortedLock.unlock();
-    emit aborted();
-}
-
-void Nonogram::saveImage(){
+void Nonogram::saveImage(const QString &fileName){
     QImage image(_width, _height, QImage::Format_RGB888);
     for(int r=0;r<_height; r++)
         for(int c=0;c<_width; c++){
             Qt::GlobalColor color;
             switch(data(r,c)){
-            case Free:    color=Qt::white; break;
-            case Full:    color=Qt::black; break;
-            case Unknown: color=Qt::gray;  break;
+            case CellStatus::Free:    color=Qt::white; break;
+            case CellStatus::Full:    color=Qt::black; break;
+            case CellStatus::Unknown: color=Qt::gray;  break;
             default:      color=Qt::gray;  break;
             }
             image.setPixel(c, r, QColor(color).rgb());
         }
-    image.save("1.png");
+    image.save(fileName);
 }
 
 void Nonogram::setData(int row, int column, CellStatus value) {
@@ -375,11 +121,12 @@ void Nonogram::insertRow(int position){
         for(int c=0; c<_width; c++)
             _dataGrid[r*_width+c]=dataGrid[r*_width+c];
     for(int c=0; c<_width; c++)
-        _dataGrid[position*_width+c]=Unknown;
+        _dataGrid[position*_width+c]=CellStatus::Unknown;
     for(int r=position+1; r<newHeight; r++)
         for(int c=0; c<_width; c++)
             _dataGrid[r*_width+c]=dataGrid[(r-1)*_width+c];
     _rowInfo.insert(position, LineInfoType());
+    _rowStatus.insert(position, LineStatus::Normal);
     _height=newHeight;
 
     emit rowInserted(position);
@@ -399,10 +146,11 @@ void Nonogram::insertColumn(int position){
         for(int r=0; r<_height; r++)
             _dataGrid[r*newWidth+c]=dataGrid[r*_width+c];
     for(int r=0; r<_height; r++)
-        _dataGrid[r*newWidth+position]=Unknown;
+        _dataGrid[r*newWidth+position]=CellStatus::Unknown;
     for(int c=position+1; c<newWidth; c++)
         for(int r=0; r<_height; r++)
             _dataGrid[r*newWidth+c]=dataGrid[r*_width+c-1];
+    _columnStatus.insert(position, LineStatus::Normal);
     _columnInfo.insert(position, LineInfoType());
     _width=newWidth;
 
@@ -426,6 +174,7 @@ void Nonogram::removeRow(int position){
         for(int c=0; c<_width; c++)
             _dataGrid[r*_width+c]=dataGrid[(r+1)*_width+c];
     _rowInfo.removeAt(position);
+    _rowStatus.removeAt(position);
     _height=newHeight;
 
     emit rowRemoved(position);
@@ -447,6 +196,7 @@ void Nonogram::removeColumn(int position){
     for(int c=position; c<newWidth; c++)
         for(int r=0; r<_height; r++)
             _dataGrid[r*newWidth+c]=dataGrid[r*_width+c+1];
+    _columnStatus.removeAt(position);
     _columnInfo.removeAt(position);
     _width=newWidth;
 
@@ -478,3 +228,4 @@ QDataStream& operator<<(QDataStream& dataStream, const Nonogram& nonogram){
     dataStream << nonogram._columnInfo << nonogram._rowInfo;
     return dataStream;
 }
+

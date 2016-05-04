@@ -6,6 +6,7 @@
 #include <QFutureWatcher>
 #include "nonogram.h"
 #include "nonogrammodel.h"
+#include "nonogramsolver.h"
 
 namespace Ui {
 class MainWindow;
@@ -39,6 +40,7 @@ private slots:
 protected:
     Ui::MainWindow* ui;
     Nonogram* _nonogram;
+    NonogramSolver _solver;
     NonogramModel _nonogramModel;
     float scale;
     bool _enableEditing;

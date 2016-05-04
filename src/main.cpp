@@ -1,5 +1,5 @@
 #include <QApplication>
-#include <QtTest/QTest>
+#include "test/test.h"
 #include "UI/mainwindow.h"
 #include "test/testnonogram.h"
 
@@ -7,8 +7,7 @@ int main(int argc, char *argv[])
 {
     QApplication application(argc, argv);
 #ifdef QT_DEBUG
-    TestNonogram test;
-    QTest::qExec(&test);
+    runTests();
 #endif
     MainWindow window;
     if (application.arguments().count()>1)

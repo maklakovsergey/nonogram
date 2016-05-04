@@ -22,7 +22,10 @@ SOURCES += \
     UI/exportimagedialog.cpp \
     UI/mainwindow.cpp \
     UI/nonogramtabledelegate.cpp \
-    UI/numberlineedit.cpp
+    UI/numberlineedit.cpp \
+    nonogramsolver.cpp \
+    test/testsolve.cpp \
+    test/test.cpp
 
 HEADERS  += \
     nonogrammodel.h \
@@ -31,7 +34,10 @@ HEADERS  += \
     UI/exportimagedialog.h \
     UI/mainwindow.h \
     UI/nonogramtabledelegate.h \
-    UI/numberlineedit.h
+    UI/numberlineedit.h \
+    nonogramsolver.h \
+    test/testsolve.h \
+    test/test.h
 
 FORMS    += \
     UI/exportimagedialog.ui \
