@@ -12,6 +12,11 @@ public:
 signals:
 
 private slots:
+    void initialize();
+    void copy();
+    void equals();
+    void solveable();
+    void stateChanging();
     void saveLoad();
 };
 

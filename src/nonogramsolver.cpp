@@ -22,7 +22,7 @@ bool NonogramSolver::canPlaceBlock(CellStatus line[], int lineSize, int offset, 
 int NonogramSolver::placeVariantsCount(int variants[], CellStatus line[], const int lineSize, const LineInfoType& info){
     if (isAborted())
         return 0;
-    if (info.count()==0){
+    if (info.isEmpty()){
         for(int i=0; i<lineSize; i++)
             if (line[i]==CellStatus::Full)
                 return 0;
