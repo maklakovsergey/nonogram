@@ -6,6 +6,7 @@
 #include <QStandardItemModel>
 #include <qvector.h>
 #include "nonogram.h"
+#include "nonogramsolver.h"
 
 class NonogramModel : public QStandardItemModel
 {
@@ -14,6 +15,7 @@ public:
     explicit NonogramModel(QObject *parent = 0);
     ~NonogramModel();
     void setNonogram(Nonogram* nonogram);
+    void setNonogramSolver(NonogramSolver* nonogramSolver);
     bool setData(const QModelIndex &index, const QVariant &value, int role);
 	Qt::ItemFlags flags(const QModelIndex & index) const;
 
@@ -41,6 +43,7 @@ private:
     bool _editing;
     bool _headerVisible;
     Nonogram* _nonogram;
+    NonogramSolver* _nonogramSolver;
     int _maxColumnInfo;
     int _maxRowInfo;
     int _dataBlockColumn;

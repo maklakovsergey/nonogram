@@ -6,7 +6,7 @@
 class NumberLineEdit:public QLineEdit{
     Q_OBJECT
 public:
-    NumberLineEdit(QWidget* parent=NULL);
+    NumberLineEdit(QWidget* parent=nullptr);
     ~NumberLineEdit();
     bool event(QEvent *event);
 };

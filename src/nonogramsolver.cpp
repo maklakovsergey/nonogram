@@ -2,9 +2,37 @@
 #include <QDebug>
 #include <QtConcurrent>
 
-NonogramSolver::NonogramSolver(QObject *parent) : QObject(parent)
-{
+NonogramSolver::NonogramSolver(QObject *parent) : QObject(parent){
+    _nonogram=nullptr;
+    _aborted=false;
+}
 
+LineStatus NonogramSolver::columnStatus(int column) const {
+    if (_nonogram==nullptr)
+        return LineStatus::Normal;
+    Q_ASSERT(column >= 0 && column < _nonogram->width());
+    return _columnStatus[column];
+}
+
+LineStatus NonogramSolver::rowStatus(int row) const {
+    if (_nonogram==nullptr)
+        return LineStatus::Normal;
+    Q_ASSERT(row >= 0 && row < _nonogram->height());
+    return _rowStatus[row];
+}
+
+void NonogramSolver::setColumnStatus(int column, LineStatus status){
+    Q_ASSERT(_nonogram!=nullptr);
+    Q_ASSERT(column >= 0 && column < _nonogram->width());
+    _columnStatus[column]=status;
+    emit columnStatusChanged(column);
+}
+
+void NonogramSolver::setRowStatus(int row, LineStatus status){
+    Q_ASSERT(_nonogram!=nullptr);
+    Q_ASSERT(row >= 0 && row < _nonogram->height());
+    _rowStatus[row]=status;
+    emit rowStatusChanged(row);
 }
 
 bool NonogramSolver::canPlaceBlock(CellStatus line[], int lineSize, int offset, int blockSize){
@@ -69,7 +97,7 @@ bool NonogramSolver::solveLine(CellStatus line[], const int lineSize, const Line
 bool NonogramSolver::solveRow(int r, QVector<bool>* needCheckColumn){
     int width=_nonogram->width();
     QVector<CellStatus> row(width);
-    _nonogram->setRowStatus(r, LineStatus::Solving);
+    setRowStatus(r, LineStatus::Solving);
     for(int c=0;c<width; c++)
         row[c]=_nonogram->data(r,c);
     if (!solveLine(row.data(), width, _nonogram->rowInfo(r))){
@@ -83,14 +111,14 @@ bool NonogramSolver::solveRow(int r, QVector<bool>* needCheckColumn){
                 _nonogram->setData(r,c,row[c]);
                 (*needCheckColumn)[c]=true;
             }
-    _nonogram->setRowStatus(r, LineStatus::Solved);
+    setRowStatus(r, LineStatus::Solved);
     return true;
 }
 
 bool NonogramSolver::solveColumn(int c, QVector<bool>* needCheckRow){
     int height=_nonogram->height();
     QVector<CellStatus> column(height);
-    _nonogram->setColumnStatus(c, LineStatus::Solving);
+    setColumnStatus(c, LineStatus::Solving);
     for(int r=0;r<height; r++)
         column[r]=_nonogram->data(r,c);
     if (!solveLine(column.data(), height, _nonogram->columnInfo(c))){
@@ -104,7 +132,7 @@ bool NonogramSolver::solveColumn(int c, QVector<bool>* needCheckRow){
                 _nonogram->setData(r,c,column[r]);
                 (*needCheckRow)[r]=true;
             }
-    _nonogram->setColumnStatus(c, LineStatus::Solved);
+    setColumnStatus(c, LineStatus::Solved);
     return true;
 }
 
@@ -208,20 +236,20 @@ bool NonogramSolver::solve(Nonogram* nonogram){
 
     int unsolvedCount=unknownCount();
     qDebug()<<"unsolved"<<unsolvedCount<<"cells";
-    for(int r=0; r<height; r++)
-        _nonogram->setRowStatus(r, LineStatus::Normal);
-    for(int c=0; c<width; c++)
-        _nonogram->setColumnStatus(c, LineStatus::Normal);
+
+    _columnStatus.fill(LineStatus::Normal, width);
+    _rowStatus.fill(LineStatus::Normal, height);
+
     QTime solveTime;
     solveTime.start();
     while (unsolvedCount>0 && !error && !isAborted()){
         for(int r=0; r<height&& !error; r++)
             if (needCheckRow[r]){
-                _nonogram->setRowStatus(r, LineStatus::WillSolve);
+                setRowStatus(r, LineStatus::WillSolve);
                 operations.append(QtConcurrent::run(this, &NonogramSolver::solveRow, r, &needCheckColumn));
             }
             else
-                _nonogram->setRowStatus(r, LineStatus::Normal);
+                setRowStatus(r, LineStatus::Normal);
 
         for(auto future:operations){
             future.waitForFinished();
@@ -233,11 +261,11 @@ bool NonogramSolver::solve(Nonogram* nonogram){
 
         for(int c=0; c<width && !error; c++)
             if (needCheckColumn[c]){
-                _nonogram->setColumnStatus(c, LineStatus::WillSolve);
+                setColumnStatus(c, LineStatus::WillSolve);
                 operations.append(QtConcurrent::run(this, &NonogramSolver::solveColumn, c, &needCheckRow));
             }
             else
-                _nonogram->setColumnStatus(c, LineStatus::Normal);
+                setColumnStatus(c, LineStatus::Normal);
 
         for(auto future:operations){
             future.waitForFinished();

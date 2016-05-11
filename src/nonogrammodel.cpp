@@ -13,7 +13,8 @@ const int CellTypeRole=Qt::UserRole+1;
 
 NonogramModel::NonogramModel(QObject *parent) : QStandardItemModel(parent)
 {
-    _nonogram=NULL;
+    _nonogram=nullptr;
+    _nonogramSolver=nullptr;
     _editing=true;
     _headerVisible=true;
     QStandardItem* emptyItemPrototype=new QStandardItem();
@@ -171,6 +172,15 @@ void NonogramModel::setNonogram(Nonogram* nonogram) {
     refreshInfo();
 }
 
+void NonogramModel::setNonogramSolver(NonogramSolver *nonogramSolver){
+    _nonogramSolver = nonogramSolver;
+    if (_nonogramSolver) {
+        connect(_nonogramSolver, &NonogramSolver::columnStatusChanged, this, &NonogramModel::refreshColumn);
+        connect(_nonogramSolver, &NonogramSolver::rowStatusChanged, this, &NonogramModel::refreshRow);
+    }
+    refreshInfo();
+}
+
 void NonogramModel::refreshInfo(){
     int columnCount= _nonogram ? _nonogram->width():0;
     int rowCount= _nonogram ? _nonogram->height():0;
@@ -275,7 +285,8 @@ void NonogramModel::refreshRow(int row){
         QString text;
         if (c<info.count())
             text=QString::number(info[info.count()-1-c]);
-        setupInfoItem(index(row + _dataBlockRow, _maxRowInfo - c - 1), text, _nonogram->rowStatus(row));
+        LineStatus rowStatus=_nonogramSolver!=nullptr?_nonogramSolver->rowStatus(row):LineStatus::Normal;
+        setupInfoItem(index(row + _dataBlockRow, _maxRowInfo - c - 1), text, rowStatus);
     }
 }
 
@@ -289,7 +300,8 @@ void NonogramModel::refreshColumn(int column){
         QString text;
         if (r<info.count())
             text=QString::number(info[info.count()-r-1]);
-        setupInfoItem(index(_maxColumnInfo - r - 1, column + _dataBlockColumn), text, _nonogram->columnStatus(column));
+        LineStatus columnStatus=_nonogramSolver!=nullptr?_nonogramSolver->columnStatus(column):LineStatus::Normal;
+        setupInfoItem(index(_maxColumnInfo - r - 1, column + _dataBlockColumn), text, columnStatus);
     }
 }
 

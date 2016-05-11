@@ -40,16 +40,6 @@ void fillRandomHeader(Nonogram& n){
     }
 }
 
-void fillRandomStatus(Nonogram& n){
-    const int width=n.width(), height=n.height();
-    const int lineStatusValuesCount=4;
-    for(int r=0; r<height; r++)
-        n.setRowStatus(r,(LineStatus)(rand()%lineStatusValuesCount));
-
-    for(int c=0; c<width; c++)
-        n.setColumnStatus(c,(LineStatus)(rand()%lineStatusValuesCount));
-}
-
 void TestNonogram::initialize(){
     Nonogram n1;
     QCOMPARE(n1.width(), 0);
@@ -77,19 +67,14 @@ void TestNonogram::copy(){
     const int width=5, height=10;
     Nonogram n1(width, height);
     fillRandomHeader(n1);
-    fillRandomStatus(n1);
     fillRandomData(n1);
     Nonogram n2(n1);
     QCOMPARE(n2.width(), n1.width());
     QCOMPARE(n2.height(), n1.height());
-    for(int r=0; r<height; r++){
+    for(int r=0; r<height; r++)
         QCOMPARE(n2.rowInfo(r), n1.rowInfo(r));
-        QCOMPARE(n2.rowStatus(r), n1.rowStatus(r));
-    }
-    for(int c=0; c<width; c++){
+    for(int c=0; c<width; c++)
         QCOMPARE(n2.columnInfo(c), n1.columnInfo(c));
-        QCOMPARE(n2.columnStatus(c), n1.columnStatus(c));
-    }
     for(int r=0; r<height; r++)
         for(int c=0; c<width; c++)
             QCOMPARE(n2.data(r, c), n1.data(r, c));
@@ -97,14 +82,10 @@ void TestNonogram::copy(){
     n3=n1;
     QCOMPARE(n3.width(), n1.width());
     QCOMPARE(n3.height(), n1.height());
-    for(int r=0; r<height; r++){
+    for(int r=0; r<height; r++)
         QCOMPARE(n3.rowInfo(r), n1.rowInfo(r));
-        QCOMPARE(n3.rowStatus(r), n1.rowStatus(r));
-    }
-    for(int c=0; c<width; c++){
+    for(int c=0; c<width; c++)
         QCOMPARE(n3.columnInfo(c), n1.columnInfo(c));
-        QCOMPARE(n3.columnStatus(c), n1.columnStatus(c));
-    }
     for(int r=0; r<height; r++)
         for(int c=0; c<width; c++)
             QCOMPARE(n3.data(r, c), n1.data(r, c));
@@ -114,7 +95,6 @@ void TestNonogram::equals(){
     const int width=5, height=10;
     Nonogram n1(width, height);
     fillRandomHeader(n1);
-    fillRandomStatus(n1);
     fillRandomData(n1);
     Nonogram n2(n1);
     QVERIFY( (n2==n1));
@@ -139,24 +119,6 @@ void TestNonogram::equals(){
     LineInfoType columnInfo=n2.columnInfo(0);
     columnInfo.append(1);
     n2.setColumnInfo(0, columnInfo);
-    QVERIFY(!(n2==n1));
-    QVERIFY( (n2!=n1));
-
-    n2 = n1;
-    LineStatus oldRowStatus=n2.rowStatus(0);
-    LineStatus newRowStatus=LineStatus::Solved;
-    if (oldRowStatus==LineStatus::Solved)
-        newRowStatus= LineStatus::Solving;
-    n2.setRowStatus(0, newRowStatus);
-    QVERIFY(!(n2==n1));
-    QVERIFY( (n2!=n1));
-
-    n2 = n1;
-    LineStatus oldColumnStatus=n2.columnStatus(0);
-    LineStatus newColumnStatus=LineStatus::Solved;
-    if (oldColumnStatus==LineStatus::Solved)
-        newColumnStatus= LineStatus::Solving;
-    n2.setColumnStatus(0, newColumnStatus);
     QVERIFY(!(n2==n1));
     QVERIFY( (n2!=n1));
 }
@@ -197,7 +159,6 @@ void TestNonogram::stateChanging(){
     Nonogram n1(5, 10);
     fillRandomData(n1);
     fillRandomHeader(n1);
-    fillRandomStatus(n1);
 
     const int dataRow=3, dataColumn=2;
 
@@ -205,11 +166,9 @@ void TestNonogram::stateChanging(){
     bool rowInfoChanged=false;
     bool rowInserted=false;
     bool rowRemoved=false;
-    bool rowStatusChanged=false;
     bool columnInfoChanged=false;
     bool columnInserted=false;
     bool columnRemoved=false;
-    bool columnStatusChanged=false;
     connect(&n1, &Nonogram::dataChanged, [&](int row, int column){
         dataChanged=true;
         QCOMPARE(row, dataRow);
@@ -227,10 +186,6 @@ void TestNonogram::stateChanging(){
         rowRemoved=true;
         QCOMPARE(row, dataRow);
     });
-    connect(&n1, &Nonogram::rowStatusChanged, [&](int row){
-        rowStatusChanged=true;
-        QCOMPARE(row, dataRow);
-    });
     connect(&n1, &Nonogram::columnInfoChanged, [&](int column){
         columnInfoChanged=true;
         QCOMPARE(column, dataColumn);
@@ -241,10 +196,6 @@ void TestNonogram::stateChanging(){
     });
     connect(&n1, &Nonogram::columnRemoved, [&](int column){
         columnRemoved=true;
-        QCOMPARE(column, dataColumn);
-    });
-    connect(&n1, &Nonogram::columnStatusChanged, [&](int column){
-        columnStatusChanged=true;
         QCOMPARE(column, dataColumn);
     });
 
@@ -268,34 +219,14 @@ void TestNonogram::stateChanging(){
     QVERIFY(columnInfoChanged);
     QCOMPARE(n1.columnInfo(dataColumn), columnInfo);
 
-    LineStatus oldRowStatus=n1.rowStatus(dataRow);
-    LineStatus newRowStatus=LineStatus::Solved;
-    if (oldRowStatus==LineStatus::Solved)
-        newRowStatus= LineStatus::Solving;
-    n1.setRowStatus(dataRow, newRowStatus);
-    QVERIFY(rowStatusChanged);
-    QCOMPARE(n1.rowStatus(dataRow), newRowStatus);
-
-    LineStatus oldColumnStatus=n1.columnStatus(dataColumn);
-    LineStatus newColumnStatus=LineStatus::Solved;
-    if (oldColumnStatus==LineStatus::Solved)
-        newColumnStatus= LineStatus::Solving;
-    n1.setColumnStatus(dataColumn, newColumnStatus);
-    QVERIFY(columnStatusChanged);
-    QCOMPARE(n1.columnStatus(dataColumn), newColumnStatus);
-
     const Nonogram n2(n1);
     n1.insertRow(dataRow);
     QVERIFY(rowInserted);
-    for(int r=0; r<dataRow; r++){
+    for(int r=0; r<dataRow; r++)
         QCOMPARE(n1.rowInfo(r), n2.rowInfo(r));
-        QCOMPARE(n1.rowStatus(r), n2.rowStatus(r));
-    }
     QCOMPARE(n1.rowInfo(dataRow), LineInfoType());
-    for(int r=dataRow; r<n2.height(); r++){
+    for(int r=dataRow; r<n2.height(); r++)
         QCOMPARE(n1.rowInfo(r+1), n2.rowInfo(r));
-        QCOMPARE(n1.rowStatus(r+1), n2.rowStatus(r));
-    }
 
     n1.removeRow(dataRow);
     QVERIFY(rowRemoved);
@@ -303,16 +234,11 @@ void TestNonogram::stateChanging(){
 
     n1.insertColumn(dataColumn);
     QVERIFY(columnInserted);
-    for(int c=0; c<dataColumn; c++){
+    for(int c=0; c<dataColumn; c++)
         QCOMPARE(n1.columnInfo(c), n2.columnInfo(c));
-        QCOMPARE(n1.columnStatus(c), n2.columnStatus(c));
-    }
     QCOMPARE(n1.columnInfo(dataColumn), LineInfoType());
-    for(int c=dataColumn; c<n2.width(); c++){
+    for(int c=dataColumn; c<n2.width(); c++)
         QCOMPARE(n1.columnInfo(c+1), n2.columnInfo(c));
-        QCOMPARE(n1.columnStatus(c+1), n2.columnStatus(c));
-    }
-
     n1.removeColumn(dataColumn);
     QVERIFY(columnRemoved);
     QCOMPARE(n2, n1);

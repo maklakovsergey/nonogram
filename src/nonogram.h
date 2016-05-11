@@ -18,17 +18,6 @@ enum class CellStatus:qint8{
     Full
 };
 
-enum class LineStatus:qint8{
-    Normal,
-    WillSolve,
-    Solving,
-    Solved
-};
-
-/*!
- * \brief The Nonogram class
- * This class creates, stores and modifies a nonogram
- */
 class Nonogram : public QObject
 {
     Q_OBJECT
@@ -47,14 +36,10 @@ public:
     CellStatus data(int row, int column) const;
     const LineInfoType& columnInfo(int column) const;
     const LineInfoType& rowInfo(int row) const;
-    LineStatus columnStatus(int column) const;
-    LineStatus rowStatus(int row) const;
 
     void setData(int row, int column, CellStatus value);
     void setColumnInfo(int column, const LineInfoType& newInfo);
     void setRowInfo(int row, const LineInfoType& newInfo);
-    void setRowStatus(int row, LineStatus status);
-    void setColumnStatus(int column, LineStatus status);
 
     void insertRow(int position);
     void insertColumn(int position);
@@ -75,8 +60,6 @@ signals:
     void columnInserted(int column);
     void rowRemoved(int row);
     void columnRemoved(int column);
-    void rowStatusChanged(int row);
-    void columnStatusChanged(int column);
 
 protected:
     int _width;
@@ -84,8 +67,6 @@ protected:
     QVector<CellStatus> _dataGrid;
     QVector<LineInfoType> _columnInfo;
     QVector<LineInfoType> _rowInfo;
-    QVector<LineStatus> _columnStatus;
-    QVector<LineStatus> _rowStatus;
 
     friend QDataStream& operator>>(QDataStream& in, Nonogram& nonogram);
     friend QDataStream& operator<<(QDataStream& out, const Nonogram& nonogram);

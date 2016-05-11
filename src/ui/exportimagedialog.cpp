@@ -6,7 +6,7 @@ ExportImageDialog::ExportImageDialog(const Nonogram& nonogram, QWidget *parent) 
     ui(new Ui::ExportImageDialog),
     _nonogram(nonogram),
     _model(this),
-    _widget(NULL)
+    _widget(nullptr)
 {
     ui->setupUi(this);
 

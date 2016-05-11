@@ -16,7 +16,7 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    _nonogram(NULL),
+    _nonogram(nullptr),
     _nonogramModel(parent)
 {
     ui->setupUi(this);
@@ -227,9 +227,10 @@ void MainWindow::setNonogram(Nonogram* nonogram){
         delete _nonogram;
     _nonogram=nonogram;
     _nonogramModel.setNonogram(nonogram);
+    _nonogramModel.setNonogramSolver(&_solver);
     enableEditing(true);
-    ui->action_save->setEnabled(nonogram!=NULL);
-    ui->action_solve->setEnabled(nonogram!=NULL);
+    ui->action_save->setEnabled(nonogram!=nullptr);
+    ui->action_solve->setEnabled(nonogram!=nullptr);
 }
 
 void MainWindow::enableEditing(bool enableEditing){

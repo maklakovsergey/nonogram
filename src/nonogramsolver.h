@@ -3,7 +3,16 @@
 
 #include <QObject>
 #include <QReadWriteLock>
+#include <QVector>
 #include "nonogram.h"
+
+
+enum class LineStatus:qint8{
+    Normal,
+    WillSolve,
+    Solving,
+    Solved
+};
 
 class NonogramSolver : public QObject
 {
@@ -12,14 +21,26 @@ public:
     explicit NonogramSolver(QObject *parent = 0);
     bool solve(Nonogram* nonogram);
     bool isAborted();
+
+    LineStatus columnStatus(int column) const;
+    LineStatus rowStatus(int row) const;
+
 public slots:
     void abort();
 signals:
     void aborted();
+    void rowStatusChanged(int row);
+    void columnStatusChanged(int column);
+
 protected:
     Nonogram* _nonogram;
     bool _aborted;
     QReadWriteLock _abortedLock;
+    QVector<LineStatus> _columnStatus;
+    QVector<LineStatus> _rowStatus;
+
+    void setRowStatus(int row, LineStatus status);
+    void setColumnStatus(int column, LineStatus status);
 
     QVector<bool> rowsForInitialCheck();
     QVector<bool> columnsForInitialCheck();

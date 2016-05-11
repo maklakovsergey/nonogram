@@ -18,8 +18,6 @@ Nonogram::Nonogram(int width, int height, QObject *parent) : Nonogram(parent){
 
 Nonogram::Nonogram(const Nonogram& nonogram):Nonogram(nonogram.width(), nonogram.height()){
     memcpy(_dataGrid.data(), nonogram._dataGrid.data(), _dataGrid.size()*sizeof(CellStatus));
-    _columnStatus=nonogram._columnStatus;
-    _rowStatus=nonogram._rowStatus;
     for(int i=0; i<_width; i++)
         _columnInfo[i]=nonogram._columnInfo[i];
     for(int i=0; i<_height; i++)
@@ -35,8 +33,6 @@ void Nonogram::init(int width, int height){
     _dataGrid=QVector<CellStatus>(_width*_height, CellStatus::Unknown);
     _columnInfo=QVector<LineInfoType>(_width);
     _rowInfo=QVector<LineInfoType>(_height);
-    _columnStatus.fill(LineStatus::Normal, _width);
-    _rowStatus.fill(LineStatus::Normal, _height);
 }
 
 bool Nonogram::isValid() const{
@@ -83,16 +79,6 @@ const LineInfoType& Nonogram::rowInfo(int row) const {
     return _rowInfo[row];
 }
 
-LineStatus Nonogram::columnStatus(int column) const {
-    ASSERT_COLUMN(column);
-    return _columnStatus.isEmpty()?LineStatus::Normal:_columnStatus[column];
-}
-
-LineStatus Nonogram::rowStatus(int row) const {
-    ASSERT_ROW(row);
-    return _rowStatus.isEmpty()?LineStatus::Normal:_rowStatus[row];
-}
-
 void Nonogram::setData(int row, int column, CellStatus value) {
     ASSERT_ROW   (row);
     ASSERT_COLUMN(column);
@@ -116,17 +102,6 @@ void Nonogram::setRowInfo(int row, const LineInfoType& newInfo) {
     emit rowInfoChanged(row);
 }
 
-void Nonogram::setColumnStatus(int column, LineStatus status){
-    ASSERT_COLUMN(column);
-    _columnStatus[column]=status;
-    emit columnStatusChanged(column);
-}
-
-void Nonogram::setRowStatus(int row, LineStatus status){
-    ASSERT_ROW(row);
-    _rowStatus[row]=status;
-    emit rowStatusChanged(row);
-}
 
 void Nonogram::insertRow(int position){
     ASSERT_ROW(position);
@@ -144,7 +119,6 @@ void Nonogram::insertRow(int position){
         for(int c=0; c<_width; c++)
             _dataGrid[r*_width+c]=dataGrid[(r-1)*_width+c];
     _rowInfo.insert(position, LineInfoType());
-    _rowStatus.insert(position, LineStatus::Normal);
     _height=newHeight;
 
     emit rowInserted(position);
@@ -165,7 +139,6 @@ void Nonogram::insertColumn(int position){
     for(int c=position+1; c<newWidth; c++)
         for(int r=0; r<_height; r++)
             _dataGrid[r*newWidth+c]=dataGrid[r*_width+c-1];
-    _columnStatus.insert(position, LineStatus::Normal);
     _columnInfo.insert(position, LineInfoType());
     _width=newWidth;
 
@@ -186,7 +159,6 @@ void Nonogram::removeRow(int position){
         for(int c=0; c<_width; c++)
             _dataGrid[r*_width+c]=dataGrid[(r+1)*_width+c];
     _rowInfo.removeAt(position);
-    _rowStatus.removeAt(position);
     _height=newHeight;
 
     emit rowRemoved(position);
@@ -205,7 +177,6 @@ void Nonogram::removeColumn(int position){
     for(int c=position; c<newWidth; c++)
         for(int r=0; r<_height; r++)
             _dataGrid[r*newWidth+c]=dataGrid[r*_width+c+1];
-    _columnStatus.removeAt(position);
     _columnInfo.removeAt(position);
     _width=newWidth;
 
@@ -234,8 +205,6 @@ void Nonogram::swap(Nonogram& other) noexcept{
     _dataGrid.swap(other._dataGrid);
     _columnInfo.swap(other._columnInfo);
     _rowInfo.swap(other._rowInfo);
-    _columnStatus.swap(other._columnStatus);
-    _rowStatus.swap(other._rowStatus);
 }
 
 Nonogram& Nonogram::operator=(Nonogram other){
@@ -248,9 +217,7 @@ bool Nonogram::operator== (const Nonogram& n)const{
             && n._height      ==_height
             && n._dataGrid    ==_dataGrid
             && n._columnInfo  ==_columnInfo
-            && n._rowInfo     ==_rowInfo
-            && n._columnStatus==_columnStatus
-            && n._rowStatus   ==_rowStatus);
+            && n._rowInfo     ==_rowInfo);
 }
 
 QDataStream& operator>>(QDataStream& dataStream, Nonogram& nonogram){
